@@ -18,6 +18,7 @@ env:
 
 jobs:
   detect-changes:
+    name: Detect Changes
     runs-on: ubuntu-latest
     outputs:
       changed_services: ${{ steps.detect.outputs.services }}
