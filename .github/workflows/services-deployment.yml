@@ -28,8 +28,8 @@ jobs:
       - name: Detect Changed Services
         id: detect
         run: |
-          # Find directories that changed within `cloud_run_services/`
-          CHANGED_SERVICES=$(git diff --name-only HEAD~1 HEAD | grep -o 'cloud_run_services/[^/]*/' | uniq | xargs -n1 basename)
+          # Find directories that changed within `services/`
+          CHANGED_SERVICES=$(git diff --name-only HEAD~1 HEAD | grep -o 'services/[^/]*/' | uniq | xargs -n1 basename)
           echo "Changed services: $CHANGED_SERVICES"
           echo "services=${CHANGED_SERVICES}" >> $GITHUB_OUTPUT
 
