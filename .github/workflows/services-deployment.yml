@@ -32,13 +32,20 @@ jobs:
           git fetch --unshallow || true
           git fetch origin dev
 
+          # Ensure `services/` directory exists
+          if [ ! -d "services" ]; then
+            echo "No 'services/' directory found. Exiting."
+            echo "services=[]" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
           # Handle first commit scenario
           if [ $(git rev-list --count HEAD) -eq 1 ]; then
             echo "First commit detected, deploying all services."
-            CHANGED_SERVICES=$(ls services) # Deploy all services
+            CHANGED_SERVICES=$(ls services)
           else
             # Find directories that changed within `services/`
-            CHANGED_SERVICES=$(git diff --name-only HEAD~1 HEAD | grep -o 'services/[^/]*/' | uniq | xargs -n1 basename)
+            CHANGED_SERVICES=$(git diff --name-only HEAD~1 HEAD | grep -o 'services/[^/]*/' | uniq | xargs -n1 basename || echo "")
           fi
 
           if [ -z "$CHANGED_SERVICES" ]; then
