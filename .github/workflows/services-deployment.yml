@@ -53,9 +53,10 @@ jobs:
             echo "No services changed."
             echo "services=[]" >> $GITHUB_OUTPUT
           else
-            echo "Changed services: $CHANGED_SERVICES"
-            CHANGED_SERVICES_JSON=$(echo "$CHANGED_SERVICES" | jq -R -s -c 'split("\n")[:-1]')
-            echo "services=${CHANGED_SERVICES_JSON}" >> $GITHUB_OUTPUT
+            # Replace underscores with dashes in service names
+            SANITIZED_SERVICES=$(echo "$CHANGED_SERVICES" | sed 's/_/-/g' | jq -R -s -c 'split("\n")[:-1]')
+            echo "Sanitized services: $SANITIZED_SERVICES"
+            echo "services=${SANITIZED_SERVICES}" >> $GITHUB_OUTPUT
           fi
 
   deploy-services:
