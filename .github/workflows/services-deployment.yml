@@ -1,0 +1,68 @@
+name: Build and Deploy to Cloud Run
+
+on:
+  push:
+    branches: ["dev"]
+
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch or tag reference"
+        required: true
+        default: "dev"
+
+env:
+  PROJECT_ID: "connecta-analytics-app" # TODO: update Google Cloud project id
+  GAR_LOCATION: "us-central1" # TODO: update Artifact Registry location
+  REGION: "us-central1" # TODO: update Cloud Run service region
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      changed_services: ${{ steps.detect.outputs.services }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Detect Changed Services
+        id: detect
+        run: |
+          # Find directories that changed within `cloud_run_services/`
+          CHANGED_SERVICES=$(git diff --name-only HEAD~1 HEAD | grep -o 'cloud_run_services/[^/]*/' | uniq | xargs -n1 basename)
+          echo "Changed services: $CHANGED_SERVICES"
+          echo "services=${CHANGED_SERVICES}" >> $GITHUB_OUTPUT
+
+  deploy-services:
+    name: Deploy Services
+    # Add 'id-token' with the intended permissions for workload identity federation
+    permissions:
+      contents: "read"
+      id-token: "write"
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.changed_services) }}
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Google Auth
+        id: auth
+        uses: "google-github-actions/auth@v2"
+        with:
+          workload_identity_provider: "${{ secrets.WIF_PROVIDER }}"
+          service_account: "${{ secrets.WIF_SERVICE_ACCOUNT }}"
+
+      - name: Deploy Changed Service to Cloud Run
+        id: deploy
+        uses: "google-github-actions/deploy-cloudrun@v2"
+        with:
+          service: ${{ matrix.service }}
+          region: ${{ env.REGION }}
+          source: services/${{ matrix.service }}
+
+      - name: Show Output URL
+        run: echo ${{ steps.deploy.outputs.url }}
