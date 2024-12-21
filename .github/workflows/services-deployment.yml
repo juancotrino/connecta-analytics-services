@@ -21,7 +21,8 @@ jobs:
     name: Detect Changes
     runs-on: ubuntu-latest
     outputs:
-      changed_services: ${{ steps.detect.outputs.services }}
+      sanitized_services: ${{ steps.detect.outputs.sanitized_services }}
+      folder_path_services: ${{ steps.detect.outputs.folder_path_services }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -55,8 +56,13 @@ jobs:
           else
             # Replace underscores with dashes in service names
             SANITIZED_SERVICES=$(echo "$CHANGED_SERVICES" | sed 's/_/-/g' | jq -R -s -c 'split("\n")[:-1]')
-            echo "Sanitized services: $SANITIZED_SERVICES"
-            echo "services=${SANITIZED_SERVICES}" >> $GITHUB_OUTPUT
+            FOLDER_PATH_SERVICES=$(echo "$CHANGED_SERVICES" | jq -R -s -c 'split("\n")[:-1]')
+
+            echo "Changed services (sanitized): $SANITIZED_SERVICES"
+            echo "Changed services (folder paths): $FOLDER_PATH_SERVICES"
+
+            echo "sanitized_services=${SANITIZED_SERVICES}" >> $GITHUB_OUTPUT
+            echo "folder_path_services=${FOLDER_PATH_SERVICES}" >> $GITHUB_OUTPUT
           fi
 
   deploy-services:
@@ -66,11 +72,12 @@ jobs:
       contents: "read"
       id-token: "write"
     needs: detect-changes
-    if: ${{ needs.detect-changes.outputs.changed_services != '[]' }}
+    if: ${{ needs.detect-changes.outputs.folder_path_services != '[]' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: ${{ fromJson(needs.detect-changes.outputs.changed_services) }}
+        folder_path_service: ${{ fromJson(needs.detect-changes.outputs.folder_path_services) }}
+        sanitized_service: ${{ fromJson(needs.detect-changes.outputs.sanitized_services) }}
       fail-fast: false
     steps:
       - name: Checkout
@@ -88,9 +95,9 @@ jobs:
         id: deploy
         uses: "google-github-actions/deploy-cloudrun@v2"
         with:
-          service: ${{ matrix.service }}
+          service: ${{ matrix.sanitized_service }}
           region: ${{ env.REGION }}
-          source: services/${{ matrix.service }}//-/_
+          source: services/${{ matrix.folder_path_service }}
 
       - name: Show Output URL
         run: echo ${{ steps.deploy.outputs.url }}
