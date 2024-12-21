@@ -64,6 +64,7 @@ jobs:
       contents: "read"
       id-token: "write"
     needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.changed_services != '[]' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
