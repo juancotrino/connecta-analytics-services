@@ -90,7 +90,7 @@ jobs:
         with:
           service: ${{ matrix.service }}
           region: ${{ env.REGION }}
-          source: services/${{ matrix.service }}
+          source: services/${{ matrix.service }}//-/_
 
       - name: Show Output URL
         run: echo ${{ steps.deploy.outputs.url }}
