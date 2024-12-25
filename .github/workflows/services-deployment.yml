@@ -12,7 +12,7 @@ on:
         default: "dev"
 
 env:
-  PROJECT_ID: "connecta-analytics-app" # TODO: update Google Cloud project id
+  PROJECT_ID: "connecta-app-1" # TODO: update Google Cloud project id
   GAR_LOCATION: "us-central1" # TODO: update Artifact Registry location
   REGION: "us-central1" # TODO: update Cloud Run service region
 
