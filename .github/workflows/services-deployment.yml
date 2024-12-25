@@ -98,6 +98,14 @@ jobs:
           service: ${{ matrix.sanitized_service }}
           region: ${{ env.REGION }}
           source: services/${{ matrix.folder_path_service }}
+          flags: |
+            --allow-unauthenticated
+            --memory=256Mi
+            --cpu=1
+            --concurrency=100
+            --timeout=3600
+            --max-instances=10
+            --service-account=${{ secrets.APP_SERVICE_ACCOUNT }}
 
       - name: Show Output URL
         run: echo ${{ steps.deploy.outputs.url }}
