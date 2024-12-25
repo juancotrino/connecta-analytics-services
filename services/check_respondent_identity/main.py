@@ -8,9 +8,9 @@ import resources
 # App logger
 setup_logging()
 
-# Cloud Run logger
-logging_client = google.cloud.logging.Client()
-logging_client.setup_logging()
+# # Cloud Run logger
+# logging_client = google.cloud.logging.Client()
+# logging_client.setup_logging()
 
 app = Flask(__name__)
 
