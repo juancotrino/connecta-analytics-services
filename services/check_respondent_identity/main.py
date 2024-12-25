@@ -1,5 +1,4 @@
 from flask import Flask, request
-import logging
 
 import resources
 
@@ -13,17 +12,19 @@ def check_respondent_identity():
 
         if phone_number is None:
             message = "Phone number is required"
-            logging.info(message)
+            app.logger.info(message)
             return {"message": message}, 400
 
-        message = f"Phone number provided: {phone_number}. "
-        f"resources test: {resources.test_resource()}"
+        message = (
+            f"Phone number provided: {phone_number}. "
+            f"resources test: {resources.test_resource()}"
+        )
         return {"message": message}, 200
 
     except Exception as e:
         # Create the failed response
         message = str(e)
-        logging.error(message)
+        app.logger.error(message)
         return {"message": message}, 400
 
 
