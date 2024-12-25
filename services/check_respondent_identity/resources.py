@@ -1,2 +1,2 @@
 def test_resource():
-    return 7
+    return 8
