@@ -1,4 +1,4 @@
-from flask import Flask, Request
+from flask import Flask, request
 import logging
 
 import resources
@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 
 @app.route("/")
-def check_respondent_identity(request: Request):
+def check_respondent_identity():
     try:
         phone_number = request.args.get('phone_number')
 
