@@ -1,16 +1,10 @@
 from flask import Flask, request
 
-import google.cloud.logging
-
 from logger import setup_logging
 import resources
 
-# App logger
-setup_logging()
 
-# # Cloud Run logger
-# logging_client = google.cloud.logging.Client()
-# logging_client.setup_logging()
+setup_logging()
 
 app = Flask(__name__)
 
