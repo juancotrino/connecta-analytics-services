@@ -1,9 +1,13 @@
 from flask import Flask, request
 
+import google.cloud.logging
+
 import resources
 
 app = Flask(__name__)
 
+logging_client = google.cloud.logging.Client()
+logging_client.setup_logging()
 
 @app.route("/")
 def check_respondent_identity():
