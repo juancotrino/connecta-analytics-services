@@ -110,6 +110,7 @@ jobs:
             TWILIO_ACCOUNT_SID=${{ secrets.TWILIO_ACCOUNT_SID }}
             TWILIO_AUTH_TOKEN=${{ secrets.TWILIO_AUTH_TOKEN }}
             TWILIO_SERVICE_SID=${{ secrets.TWILIO_SERVICE_SID }}
+            GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
 
       - name: Show Output URL
         run: echo ${{ steps.deploy.outputs.url }}
