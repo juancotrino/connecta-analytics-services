@@ -118,11 +118,12 @@ def write_respondent():
     Verify the code sent to the phone number.
     """
     data = {
-        "name": request.args.get("name"),
-        "last_name": request.args.get("last_name"),
-        "phone_number": request.args.get("phone_number"),
-        "age": request.args.get("age"),
-        "project_type": request.args.get("project_type"),
+        "phone_number": int(request.args.get("phone_number").replace('+', '').strip()),
+        "name": request.args.get("name").strip().lower(),
+        "last_name": request.args.get("last_name").strip().lower(),
+        "age": int(request.args.get("age").strip()),
+        "gender": request.args.get("gender").strip().lower(),
+        "project_type": request.args.get("project_type").strip().lower(),
         "response_datetime": datetime.now()
     }
 
