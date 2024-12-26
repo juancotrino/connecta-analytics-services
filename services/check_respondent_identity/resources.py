@@ -14,7 +14,7 @@ twilio_client = TwilioClient(
 bq_client = bigquery.Client()
 
 
-def get_respondent(phone_number: str, study_type: str):
+def get_respondent(phone_number: int, study_type: str):
     # Define your query to check for existing records
     query = """
         SELECT
@@ -28,7 +28,7 @@ def get_respondent(phone_number: str, study_type: str):
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
             bigquery.ScalarQueryParameter(
-                "phone_number", "STRING", phone_number
+                "phone_number", "INT64", phone_number
             ),
             bigquery.ScalarQueryParameter(
                 "project_type", "STRING", study_type
@@ -44,7 +44,7 @@ def get_respondent(phone_number: str, study_type: str):
     return query_job.result()
 
 
-def is_respondent_qualified(phone_number: str, study_type: str):
+def is_respondent_qualified(phone_number: int, study_type: str):
     # Fetch results
     results = get_respondent(phone_number, study_type)
 
@@ -103,10 +103,10 @@ def write_to_bq(data: dict):
         update_job_config = bigquery.QueryJobConfig(
             query_parameters=[
                 bigquery.ScalarQueryParameter(
-                    "response_datetime", "TIMESTAMP", datetime.now().isoformat()
+                    "response_datetime", "TIMESTAMP", datetime.now()
                 ),
                 bigquery.ScalarQueryParameter(
-                    "phone_number", "STRING", data['phone_number']
+                    "phone_number", "INT64", data['phone_number']
                 ),
                 bigquery.ScalarQueryParameter(
                     "project_type", "STRING", data['study_type']

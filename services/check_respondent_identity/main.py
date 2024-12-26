@@ -30,6 +30,8 @@ def check_respondent_qualified(phone_number: str, study_type: str):
         return {"message": message}, 400
 
     try:
+        phone_number = int(phone_number.replace("+", "").strip())
+        study_type = study_type.strip().lower()
         # Check if the respondent is qualified
         is_qualified = resources.is_respondent_qualified(
             phone_number, study_type
