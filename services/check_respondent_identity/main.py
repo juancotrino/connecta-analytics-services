@@ -128,7 +128,7 @@ def write_respondent():
 
     try:
         # Writes to BQ
-        resources.write_respondent(data)
+        resources.write_to_bq(data)
         message = f"Respondent data saved successfully."
         app.logger.info(message)
         return {"message": message}, 200
