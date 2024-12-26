@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from flask import Flask, request
+from flask_cors import CORS
 
 from logger import setup_logging
 import resources
@@ -10,6 +11,10 @@ setup_logging()
 
 app = Flask(__name__)
 
+ALLOWED_ORIGIN = "https://connecta.questionpro.com"  # Replace with the allowed origin
+
+# Configure CORS to allow only specific origin
+CORS(app, resources={r"/*": {"origins": ALLOWED_ORIGIN}})
 
 @app.route("/check_health")
 def check_health():
