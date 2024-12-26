@@ -124,15 +124,16 @@ def write_respondent():
     """
     Verify the code sent to the phone number.
     """
+    app.logger.info('Enters the endpoint')
     data = {
         "phone_number": int(request.args.get("phone_number").replace('+', '').strip()),
         "name": request.args.get("name").strip().lower(),
-        "last_name": request.args.get("last_name").strip().lower(),
         "age": int(request.args.get("age").strip()),
         "gender": request.args.get("gender").strip().lower(),
         "project_type": request.args.get("project_type").strip().lower(),
         "response_datetime": datetime.now()
     }
+    app.logger.info('Data dictionary builded')
 
     try:
         # Writes to BQ
