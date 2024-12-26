@@ -41,7 +41,7 @@ def get_respondent(phone_number: int, study_type: str):
     query_job = bq_client.query(formatted_query, job_config=job_config)
 
     # Fetch results
-    return query_job.result()
+    return list(query_job.result())
 
 
 def is_respondent_qualified(phone_number: int, study_type: str):
