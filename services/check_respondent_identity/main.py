@@ -1,7 +1,4 @@
-import os
-
 from flask import Flask
-from twilio.rest import Client as TwilioClient
 
 from logger import setup_logging
 import resources
@@ -10,11 +7,6 @@ import resources
 setup_logging()
 
 app = Flask(__name__)
-
-twilio_client = TwilioClient(
-    os.getenv("TWILIO_ACCOUNT_SID"),
-    os.getenv("TWILIO_AUTH_TOKEN")
-)
 
 
 @app.route("/check_health")
@@ -37,16 +29,14 @@ def send_code(phone_number: str):
 
     try:
         # Use Twilio to send the verification SMS
-        verification = twilio_client.verify.services(
-            os.getenv("TWILIO_SERVICE_SID")
-        ).verifications.create(
-            to=phone_number,
-            channel='sms'
-        )
+        verification = resources.send_code(phone_number)
         _status = verification.status
-        message = f"Verification code sent with status {_status}."
+        message = f"Verification code sent with status '{_status}'."
         app.logger.info(message)
-        return {"message": message}, 200
+        return {
+            "message": message,
+            "status": _status
+        }, 200
 
     except Exception as e:
         message = f"Failed to send code: {str(e)}"
@@ -66,16 +56,14 @@ def verify(phone_number: str, code: str):
 
     try:
         # Verify the code using Twilio
-        verification_check = twilio_client.verify.services(
-            os.getenv("TWILIO_SERVICE_SID")
-        ).verification_checks.create(
-            to=phone_number,
-            code=code
-        )
+        verification_check = resources.verify_code(phone_number, code)
         _status = verification_check.status
-        message = f"Verification code sent with status {_status}."
+        message = f"Verification code sent with status '{_status}'."
         app.logger.info(message)
-        return {"message": message}, 200
+        return {
+            "message": message,
+            "status": _status
+        }, 200 if _status == "approved" else 400
 
     except Exception as e:
         message = f"Verification failed: {str(e)}"
