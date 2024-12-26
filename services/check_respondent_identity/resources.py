@@ -81,7 +81,7 @@ def verify_code(phone_number: str, code: str):
 
 def write_to_bq(data: dict):
     # Fetch results
-    results = get_respondent(data['phone_number'], data['study_type'])
+    results = get_respondent(data['phone_number'], data['project_type'])
 
     if len(results) == 0:
         # No record found, insert new data

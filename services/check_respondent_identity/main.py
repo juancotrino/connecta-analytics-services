@@ -126,11 +126,11 @@ def write_respondent():
     """
     app.logger.info('Enters the endpoint')
     data = {
-        "phone_number": int(request.args.get("phone_number").replace('+', '').strip()),
-        "name": request.args.get("name").strip().lower(),
-        "age": int(request.args.get("age").strip()),
-        "gender": request.args.get("gender").strip().lower(),
-        "project_type": request.args.get("project_type").strip().lower(),
+        "phone_number": int(request.get_json().get("phone_number").replace('+', '').strip()),
+        "name": request.get_json().get("name").strip().lower(),
+        "age": int(request.get_json().get("age").strip()),
+        "gender": request.get_json().get("gender").strip().lower(),
+        "project_type": request.get_json().get("project_type").strip().lower(),
         "response_datetime": datetime.now()
     }
     app.logger.info('Data dictionary builded')
