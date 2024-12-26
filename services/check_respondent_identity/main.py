@@ -1,35 +1,93 @@
-from flask import Flask, request
+import os
 
-from logger import setup_logging
-import resources
+from fastapi import FastAPI, status
+from fastapi.exceptions import HTTPException
+import uvicorn
+
+from twilio.rest import Client as TwilioClient
+
+from logger import setup_logging, get_logger
 
 
 setup_logging()
+logger = get_logger(__name__)
 
-app = Flask(__name__)
+app = FastAPI()
 
-@app.route("/")
-def check_respondent_identity():
-    try:
-        phone_number = request.args.get('phone_number')
+twilio_client = TwilioClient(
+    os.getenv("TWILIO_ACCOUNT_SID"),
+    os.getenv("TWILIO_AUTH_TOKEN")
+)
 
-        if phone_number is None:
-            message = "Phone number is required"
-            app.logger.info(message)
-            return {"message": message}, 400
 
-        message = (
-            f"Phone number provided: {phone_number}. "
-            f"resources test: {resources.test_resource()}"
+@app.post("/send_code/{phone_number}")
+async def send_code(phone_number: str):
+    """
+    Send an SMS verification code to the given phone number.
+    """
+    if not phone_number:
+        message = "Phone number is required."
+        logger.error(message)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=message
         )
-        return {"message": message}, 200
+
+    try:
+        # Use Twilio to send the verification SMS
+        verification = twilio_client.verify.services(
+            os.getenv("TWILIO_SERVICE_SID")
+        ).verifications.create(
+            to=phone_number,
+            channel='sms'
+        )
+        _status = verification.status
+        message = f"Verification code sent with status {_status}."
+        logger.info(message)
+        return {"message": message}
 
     except Exception as e:
-        # Create the failed response
-        message = str(e)
-        app.logger.error(message)
-        return {"message": message}, 400
+        message = f"Failed to send code: {str(e)}"
+        logger.error(message)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=message
+        )
+
+@app.post("/verify/{phone_number}/{code}")
+async def verify(phone_number: str, code: str):
+    """
+    Verify the code sent to the phone number.
+    """
+    if not phone_number or not code:
+        message = "Phone number and code are required."
+        logger.error(message)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=message
+        )
+
+    try:
+        # Verify the code using Twilio
+        verification_check = twilio_client.verify.services(
+            os.getenv("TWILIO_SERVICE_SID")
+        ).verification_checks.create(
+            to=phone_number,
+            code=code
+        )
+        _status = verification_check.status
+        message = f"Verification code sent with status {_status}."
+        logger.info(message)
+        return {"message": message}
+
+    except Exception as e:
+        message = f"Verification failed: {str(e)}"
+        logger.error(message)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=message
+        )
 
 
 if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0", port=8080)
+    uvicorn.run("main:app", host="0.0.0.0", port=8080)
