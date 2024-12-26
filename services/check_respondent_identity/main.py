@@ -25,7 +25,7 @@ def check_health():
     return {"message": "Service is healthy."}, 200
 
 
-@app.route("/send_code/<str:phone_number>")
+@app.route("/send_code/<path:phone_number>")
 def send_code(phone_number: str):
     """
     Send an SMS verification code to the given phone number.
@@ -54,7 +54,7 @@ def send_code(phone_number: str):
         return {"message": message}, 500
 
 
-@app.route("/verify/<str:phone_number>//<str:code>")
+@app.route("/verify/<path:phone_number>/<path:code>")
 def verify(phone_number: str, code: str):
     """
     Verify the code sent to the phone number.
