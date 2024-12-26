@@ -1,4 +1,6 @@
-from flask import Flask
+from datetime import datetime
+
+from flask import Flask, request
 
 from logger import setup_logging
 import resources
@@ -15,6 +17,45 @@ def check_health():
     Check the health of the service.
     """
     return {"message": "Service is healthy."}, 200
+
+
+@app.route("/check_respondent_qualified/<path:phone_number>/<path:study_type>")
+def check_respondent_qualified(phone_number: str, study_type: str):
+    """
+    Check if the respondent is qualified to take the survey.
+    """
+    if not phone_number:
+        message = "Phone number is required."
+        app.logger.error(message)
+        return {"message": message}, 400
+
+    try:
+        # Check if the respondent is qualified
+        is_qualified = resources.is_respondent_qualified(
+            phone_number, study_type
+        )
+
+        if is_qualified:
+            message = (
+                f"Respondent is qualified. Phone number "
+                f"{phone_number} and study type {study_type}."
+            )
+        else:
+            message = (
+                f"Respondent is not qualified. Phone number "
+                f"{phone_number} and study type {study_type}."
+            )
+
+        app.logger.info(message)
+        return {
+            "message": message,
+            "is_qualified": is_qualified
+        }, 200 if is_qualified else 403
+
+    except Exception as e:
+        message = f"Failed to check respondent qualification: {str(e)}"
+        app.logger.error(message)
+        return {"message": message}, 500
 
 
 @app.route("/send_code/<path:phone_number>")
@@ -64,6 +105,33 @@ def verify(phone_number: str, code: str):
             "message": message,
             "status": _status
         }, 200 if _status == "approved" else 400
+
+    except Exception as e:
+        message = f"Verification failed: {str(e)}"
+        app.logger.error(message)
+        return {"message": message}, 500
+
+
+@app.route("/write_respondent", methods=["POST"])
+def write_respondent():
+    """
+    Verify the code sent to the phone number.
+    """
+    data = {
+        "name": request.args.get("name"),
+        "last_name": request.args.get("last_name"),
+        "phone_number": request.args.get("phone_number"),
+        "age": request.args.get("age"),
+        "project_type": request.args.get("project_type"),
+        "response_datetime": datetime.now()
+    }
+
+    try:
+        # Writes to BQ
+        resources.write_respondent(data)
+        message = f"Respondent data saved successfully."
+        app.logger.info(message)
+        return {"message": message}, 200
 
     except Exception as e:
         message = f"Verification failed: {str(e)}"
