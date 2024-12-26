@@ -51,6 +51,9 @@ def is_respondent_qualified(phone_number: int, study_type: str):
     if len(results) > 1:
         return False
 
+    if not results:
+        return True
+
     result = parse(results[0].response_datetime)
     if (datetime.now() - result).days < 180:
         return False
