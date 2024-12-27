@@ -165,9 +165,5 @@ def write_respondent():
 
 
 if __name__ == "__main__":
-    if ENV == "local":
-        debug = True
-    else:
-        debug = False
-
-    app.run(debug=False, host="0.0.0.0", port=8080)
+    debug = ENV == "local"
+    app.run(debug=debug, host="0.0.0.0", port=8080)
