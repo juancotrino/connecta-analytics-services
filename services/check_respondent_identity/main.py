@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timezone
 
 from flask import Flask, request
@@ -6,6 +7,12 @@ from flask_cors import CORS
 from logger import setup_logging
 import resources
 
+ENV = os.getenv("ENV", "local")
+
+if ENV == "local":
+    from dotenv import load_dotenv
+
+    load_dotenv()
 
 setup_logging()
 
@@ -158,4 +165,9 @@ def write_respondent():
 
 
 if __name__ == "__main__":
+    if ENV == "local":
+        debug = True
+    else:
+        debug = False
+
     app.run(debug=False, host="0.0.0.0", port=8080)
