@@ -6,6 +6,8 @@ from flask_cors import CORS
 from logger import setup_logging
 import resources
 
+from dotenv import load_dotenv
+load_dotenv()
 
 setup_logging()
 
@@ -24,8 +26,8 @@ def check_health():
     return {"message": "Service is healthy."}, 200
 
 
-@app.route("/check_respondent_qualified/<path:phone_number>/<path:project_type>")
-def check_respondent_qualified(phone_number: str, project_type: str):
+@app.route("/check_respondent_qualified/<path:country>/<path:phone_number>/<path:project_type>")
+def check_respondent_qualified(country: str, phone_number: str, project_type: str):
     """
     Check if the respondent is qualified to take the survey.
     """
@@ -35,7 +37,7 @@ def check_respondent_qualified(phone_number: str, project_type: str):
         return {"message": message}, 400
 
     try:
-        phone_number = int(phone_number.replace("+", "").replace(" ", ""))
+        phone_number = int(resources.transform_phone_number(country, phone_number))
         project_type = project_type.strip().lower()
         # Check if the respondent is qualified
         is_qualified = resources.is_respondent_qualified(
@@ -65,8 +67,8 @@ def check_respondent_qualified(phone_number: str, project_type: str):
         return {"message": message}, 500
 
 
-@app.route("/send_code/<path:phone_number>")
-def send_code(phone_number: str):
+@app.route("/send_code/<path:country>/<path:phone_number>")
+def send_code(country: str, phone_number: str):
     """
     Send an SMS verification code to the given phone number.
     """
@@ -77,7 +79,7 @@ def send_code(phone_number: str):
 
     try:
         # Sanitize the phone number
-        phone_number = phone_number.replace(" ", "")
+        phone_number = f'+{resources.transform_phone_number(country, phone_number)}'
         # Use Twilio to send the verification SMS
         verification = resources.send_code(phone_number)
         _status = verification.status
@@ -94,8 +96,8 @@ def send_code(phone_number: str):
         return {"message": message}, 500
 
 
-@app.route("/verify/<path:phone_number>/<path:code>")
-def verify(phone_number: str, code: str):
+@app.route("/verify/<path:country>/<path:phone_number>/<path:code>")
+def verify(country: str, phone_number: str, code: str):
     """
     Verify the code sent to the phone number.
     """
@@ -106,7 +108,7 @@ def verify(phone_number: str, code: str):
 
     try:
         # Sanitize the phone number
-        phone_number = phone_number.replace(" ", "")
+        phone_number = f'+{resources.transform_phone_number(country, phone_number)}'
         # Sanitize the code
         code = code.replace(" ", "")
         # Verify the code using Twilio
@@ -130,9 +132,12 @@ def write_respondent():
     """
     Verify the code sent to the phone number.
     """
-    app.logger.info('Enters the endpoint')
+    country = request.get_json().get("country").strip()
+    phone_number = int(resources.transform_phone_number(country, request.get_json().get("phone_number")))
+
     data = {
-        "phone_number": int(request.get_json().get("phone_number").replace('+', '').replace(" ", "")),
+        "country": country,
+        "phone_number": phone_number,
         "name": request.get_json().get("name").strip().lower(),
         "age": int(request.get_json().get("age").strip()),
         "gender": request.get_json().get("gender").strip().lower(),
@@ -155,4 +160,4 @@ def write_respondent():
 
 
 if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0", port=8080)
+    app.run(debug=True, host="0.0.0.0", port=8080)

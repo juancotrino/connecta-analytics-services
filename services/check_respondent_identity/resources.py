@@ -1,5 +1,7 @@
 import os
+from pathlib import Path
 from datetime import datetime, timezone
+import json
 
 from twilio.rest import Client as TwilioClient
 
@@ -11,6 +13,25 @@ twilio_client = TwilioClient(
 )
 
 bq_client = bigquery.Client()
+
+with open(
+    Path(__file__).parent.joinpath('countries_phone_codes.json'), 'r'
+) as file:
+    countries_phone_codes = json.load(file)
+
+
+def get_country_phone_code(country_code: str):
+    return countries_phone_codes.get(country_code)
+
+
+def transform_phone_number(country: str, phone_number: str):
+        phone_number = phone_number.replace("+", "").replace(" ", "")
+        country_phone_code = get_country_phone_code(country)
+        # Check if the phone number already has the country code
+        if country_phone_code in phone_number[:len(country_phone_code)]:
+            country_phone_code = ""
+
+        return f'{country_phone_code}{phone_number}'
 
 
 def get_respondent(phone_number: int, project_type: str):
