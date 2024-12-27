@@ -12,7 +12,7 @@ ENV = os.getenv("ENV", "local")
 if ENV == "local":
     from dotenv import load_dotenv
 
-    load_dotenv()
+    load_dotenv('../../.env')
 
 setup_logging()
 
