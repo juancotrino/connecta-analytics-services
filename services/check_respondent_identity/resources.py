@@ -13,7 +13,7 @@ twilio_client = TwilioClient(
 bq_client = bigquery.Client()
 
 
-def get_respondent(phone_number: int, study_type: str):
+def get_respondent(phone_number: int, project_type: str):
     # Define your query to check for existing records
     query = """
         SELECT
@@ -30,7 +30,7 @@ def get_respondent(phone_number: int, study_type: str):
                 "phone_number", "INT64", phone_number
             ),
             bigquery.ScalarQueryParameter(
-                "project_type", "STRING", study_type
+                "project_type", "STRING", project_type
             ),
         ]
     )
@@ -43,9 +43,9 @@ def get_respondent(phone_number: int, study_type: str):
     return list(query_job.result())
 
 
-def is_respondent_qualified(phone_number: int, study_type: str):
+def is_respondent_qualified(phone_number: int, project_type: str):
     # Fetch results
-    results = get_respondent(phone_number, study_type)
+    results = get_respondent(phone_number, project_type)
 
     if len(results) > 1:
         return False
@@ -111,7 +111,7 @@ def write_to_bq(data: dict):
                     "phone_number", "INT64", data['phone_number']
                 ),
                 bigquery.ScalarQueryParameter(
-                    "project_type", "STRING", data['study_type']
+                    "project_type", "STRING", data['project_type']
                 ),
             ]
         )
@@ -120,4 +120,4 @@ def write_to_bq(data: dict):
         update_query_job.result()  # Wait for the job to complete
 
     else:
-        raise ValueError("Multiple records found for the given phone number and study type")
+        raise ValueError("Multiple records found for the given phone number and project type")

@@ -24,8 +24,8 @@ def check_health():
     return {"message": "Service is healthy."}, 200
 
 
-@app.route("/check_respondent_qualified/<path:phone_number>/<path:study_type>")
-def check_respondent_qualified(phone_number: str, study_type: str):
+@app.route("/check_respondent_qualified/<path:phone_number>/<path:project_type>")
+def check_respondent_qualified(phone_number: str, project_type: str):
     """
     Check if the respondent is qualified to take the survey.
     """
@@ -36,21 +36,21 @@ def check_respondent_qualified(phone_number: str, study_type: str):
 
     try:
         phone_number = int(phone_number.replace("+", "").strip())
-        study_type = study_type.strip().lower()
+        project_type = project_type.strip().lower()
         # Check if the respondent is qualified
         is_qualified = resources.is_respondent_qualified(
-            phone_number, study_type
+            phone_number, project_type
         )
 
         if is_qualified:
             message = (
                 f"Respondent is qualified. Phone number "
-                f"{phone_number} and study type {study_type}."
+                f"{phone_number} and project type {project_type}."
             )
         else:
             message = (
                 f"Respondent is not qualified. Phone number "
-                f"{phone_number} and study type {study_type}."
+                f"{phone_number} and project type {project_type}."
             )
 
         app.logger.info(message)
