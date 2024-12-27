@@ -6,8 +6,6 @@ from flask_cors import CORS
 from logger import setup_logging
 import resources
 
-from dotenv import load_dotenv
-load_dotenv()
 
 setup_logging()
 
