@@ -34,7 +34,7 @@ def transform_phone_number(country: str, phone_number: str):
         return f'{country_phone_code}{phone_number}'
 
 
-def get_respondent(phone_number: int, project_type: str):
+def get_respondent_date(phone_number: int, project_type: str):
     # Define your query to check for existing records
     query = """
         SELECT
@@ -66,7 +66,7 @@ def get_respondent(phone_number: int, project_type: str):
 
 def is_respondent_qualified(phone_number: int, project_type: str):
     # Fetch results
-    results = get_respondent(phone_number, project_type)
+    results = get_respondent_date(phone_number, project_type)
 
     if len(results) > 1:
         return False
@@ -74,7 +74,8 @@ def is_respondent_qualified(phone_number: int, project_type: str):
     if not results:
         return True
 
-    result = results[0].response_datetime
+    result = results[0].response_datetime.replace(tzinfo=timezone.utc)
+
     if (datetime.now(timezone.utc) - result).days < 180:
         return False
 
@@ -101,7 +102,7 @@ def verify_code(phone_number: str, code: str):
 
 def write_to_bq(data: dict):
     # Fetch results
-    results = get_respondent(data['phone_number'], data['project_type'])
+    results = get_respondent_date(data['phone_number'], data['project_type'])
 
     if len(results) == 0:
         # No record found, insert new data
