@@ -35,7 +35,7 @@ def check_respondent_qualified(phone_number: str, project_type: str):
         return {"message": message}, 400
 
     try:
-        phone_number = int(phone_number.replace("+", "").strip())
+        phone_number = int(phone_number.replace("+", "").replace(" ", ""))
         project_type = project_type.strip().lower()
         # Check if the respondent is qualified
         is_qualified = resources.is_respondent_qualified(
@@ -76,6 +76,8 @@ def send_code(phone_number: str):
         return {"message": message}, 400
 
     try:
+        # Sanitize the phone number
+        phone_number = phone_number.replace(" ", "")
         # Use Twilio to send the verification SMS
         verification = resources.send_code(phone_number)
         _status = verification.status
@@ -103,6 +105,10 @@ def verify(phone_number: str, code: str):
         return {"message": message}, 400
 
     try:
+        # Sanitize the phone number
+        phone_number = phone_number.replace(" ", "")
+        # Sanitize the code
+        code = code.replace(" ", "")
         # Verify the code using Twilio
         verification_check = resources.verify_code(phone_number, code)
         _status = verification_check.status
@@ -126,7 +132,7 @@ def write_respondent():
     """
     app.logger.info('Enters the endpoint')
     data = {
-        "phone_number": int(request.get_json().get("phone_number").replace('+', '').strip()),
+        "phone_number": int(request.get_json().get("phone_number").replace('+', '').replace(" ", "")),
         "name": request.get_json().get("name").strip().lower(),
         "age": int(request.get_json().get("age").strip()),
         "gender": request.get_json().get("gender").strip().lower(),
