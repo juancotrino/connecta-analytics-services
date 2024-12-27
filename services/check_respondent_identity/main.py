@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import Flask, request
 from flask_cors import CORS
@@ -131,7 +131,7 @@ def write_respondent():
         "age": int(request.get_json().get("age").strip()),
         "gender": request.get_json().get("gender").strip().lower(),
         "project_type": request.get_json().get("project_type").strip().lower(),
-        "response_datetime": datetime.now()
+        "response_datetime": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     }
     app.logger.info('Data dictionary builded')
 
@@ -143,7 +143,7 @@ def write_respondent():
         return {"message": message}, 200
 
     except Exception as e:
-        message = f"Verification failed: {str(e)}"
+        message = f"Error writing respondent data to BQ: {str(e)}"
         app.logger.error(message)
         return {"message": message}, 500
 

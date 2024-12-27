@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from dateutil.parser import parse
 
 from twilio.rest import Client as TwilioClient
@@ -106,7 +106,7 @@ def write_to_bq(data: dict):
         update_job_config = bigquery.QueryJobConfig(
             query_parameters=[
                 bigquery.ScalarQueryParameter(
-                    "response_datetime", "TIMESTAMP", datetime.now()
+                    "response_datetime", "TIMESTAMP", datetime.now(timezone.utc)
                 ),
                 bigquery.ScalarQueryParameter(
                     "phone_number", "INT64", data['phone_number']
