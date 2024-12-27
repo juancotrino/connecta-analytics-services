@@ -1,6 +1,5 @@
 import os
 from datetime import datetime, timezone
-from dateutil.parser import parse
 
 from twilio.rest import Client as TwilioClient
 
@@ -54,7 +53,7 @@ def is_respondent_qualified(phone_number: int, study_type: str):
     if not results:
         return True
 
-    result = parse(results[0].response_datetime)
+    result = results[0].response_datetime
     if (datetime.now() - result).days < 180:
         return False
 
