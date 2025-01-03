@@ -85,6 +85,9 @@ jobs:
 
   delete-services:
     name: Delete Services
+    permissions:
+      contents: "read"
+      id-token: "write"
     needs: detect-changes
     if: ${{ needs.detect-changes.outputs.deleted_services != '[]' }}
     runs-on: ubuntu-latest
@@ -92,6 +95,9 @@ jobs:
       matrix:
         deleted_service: ${{ fromJson(needs.detect-changes.outputs.deleted_services) }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Google Auth
         uses: "google-github-actions/auth@v2"
         with:
