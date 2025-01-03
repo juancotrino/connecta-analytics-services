@@ -112,7 +112,7 @@ jobs:
       contents: "read"
       id-token: "write"
     needs: detect-changes
-    if: ${{ needs.detect-changes.outputs.folder_path_services != '[]' }}
+    if: ${{ needs.detect-changes.outputs.folder_path_services && needs.detect-changes.outputs.folder_path_services != '[]' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
