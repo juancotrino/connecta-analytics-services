@@ -34,10 +34,11 @@ jobs:
           git fetch --unshallow || true
           git fetch origin dev
 
-          # Ensure `services/` directory exists
+          # Ensure services/ directory exists
           if [ ! -d "services" ]; then
             echo "No 'services/' directory found. Exiting."
-            echo "services=[]" >> $GITHUB_OUTPUT
+            echo "sanitized_services=[]" >> $GITHUB_OUTPUT
+            echo "folder_path_services=[]" >> $GITHUB_OUTPUT
             exit 0
           fi
 
@@ -46,13 +47,18 @@ jobs:
             echo "First commit detected, deploying all services."
             CHANGED_SERVICES=$(ls services)
           else
-            # Find directories that changed within `services/`
+            # Find directories that changed within services/
             CHANGED_SERVICES=$(git diff --name-only HEAD~1 HEAD | grep -o 'services/[^/]*/' | uniq | xargs -n1 basename || echo "")
           fi
 
+          # Filter out deleted services
+          EXISTING_SERVICES=$(ls services)
+          CHANGED_SERVICES=$(echo "$CHANGED_SERVICES" | grep -Fx -f <(echo "$EXISTING_SERVICES") || echo "")
+
           if [ -z "$CHANGED_SERVICES" ]; then
             echo "No services changed."
-            echo "services=[]" >> $GITHUB_OUTPUT
+            echo "sanitized_services=[]" >> $GITHUB_OUTPUT
+            echo "folder_path_services=[]" >> $GITHUB_OUTPUT
           else
             # Replace underscores with dashes in service names
             SANITIZED_SERVICES=$(echo "$CHANGED_SERVICES" | sed 's/_/-/g' | jq -R -s -c 'split("\n")[:-1]')
