@@ -12,7 +12,7 @@ ENV = os.getenv("ENV", "local")
 if ENV == "local":
     from dotenv import load_dotenv
 
-    load_dotenv('../../.env')
+    load_dotenv("../../.env")
 
 setup_logging()
 
@@ -23,6 +23,7 @@ ALLOWED_ORIGIN = "https://connecta.questionpro.com"  # Replace with the allowed 
 # Configure CORS to allow only specific origin
 CORS(app, resources={r"/*": {"origins": ALLOWED_ORIGIN}})
 
+
 @app.route("/check_health")
 def check_health():
     """
@@ -31,7 +32,9 @@ def check_health():
     return {"message": "Service is healthy."}, 200
 
 
-@app.route("/check_respondent_qualified/<path:country>/<path:phone_number>/<path:project_type>")
+@app.route(
+    "/check_respondent_qualified/<path:country>/<path:phone_number>/<path:project_type>"
+)
 def check_respondent_qualified(country: str, phone_number: str, project_type: str):
     """
     Check if the respondent is qualified to take the survey.
@@ -45,9 +48,7 @@ def check_respondent_qualified(country: str, phone_number: str, project_type: st
         phone_number = int(resources.transform_phone_number(country, phone_number))
         project_type = project_type.strip().lower()
         # Check if the respondent is qualified
-        is_qualified = resources.is_respondent_qualified(
-            phone_number, project_type
-        )
+        is_qualified = resources.is_respondent_qualified(phone_number, project_type)
 
         if is_qualified:
             message = (
@@ -63,7 +64,7 @@ def check_respondent_qualified(country: str, phone_number: str, project_type: st
         app.logger.info(message)
         return {
             "message": message,
-            "is_qualified": is_qualified
+            "is_qualified": is_qualified,
         }, 200 if is_qualified else 403
 
     except Exception as e:
@@ -84,16 +85,13 @@ def send_code(country: str, phone_number: str):
 
     try:
         # Sanitize the phone number
-        phone_number = f'+{resources.transform_phone_number(country, phone_number)}'
+        phone_number = f"+{resources.transform_phone_number(country, phone_number)}"
         # Use Twilio to send the verification SMS
         verification = resources.send_code(phone_number)
         _status = verification.status
         message = f"Verification code sent with status '{_status}'."
         app.logger.info(message)
-        return {
-            "message": message,
-            "status": _status
-        }, 200
+        return {"message": message, "status": _status}, 200
 
     except Exception as e:
         message = f"Failed to send code: {str(e)}"
@@ -113,7 +111,7 @@ def verify(country: str, phone_number: str, code: str):
 
     try:
         # Sanitize the phone number
-        phone_number = f'+{resources.transform_phone_number(country, phone_number)}'
+        phone_number = f"+{resources.transform_phone_number(country, phone_number)}"
         # Sanitize the code
         code = code.replace(" ", "")
         # Verify the code using Twilio
@@ -123,7 +121,7 @@ def verify(country: str, phone_number: str, code: str):
         app.logger.info(message)
         return {
             "message": message,
-            "status": _status
+            "status": _status,
         }, 200 if _status == "approved" else 400
 
     except Exception as e:
@@ -138,7 +136,11 @@ def write_respondent():
     Verify the code sent to the phone number.
     """
     country = request.get_json().get("country").strip()
-    phone_number = int(resources.transform_phone_number(country, request.get_json().get("phone_number")))
+    phone_number = int(
+        resources.transform_phone_number(
+            country, request.get_json().get("phone_number")
+        )
+    )
 
     data = {
         "country": country,
@@ -147,14 +149,14 @@ def write_respondent():
         "age": int(request.get_json().get("age").strip()),
         "gender": request.get_json().get("gender").strip().lower(),
         "project_type": request.get_json().get("project_type").strip().lower(),
-        "response_datetime": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        "response_datetime": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
     }
-    app.logger.info('Data dictionary builded')
+    app.logger.info("Data dictionary builded")
 
     try:
         # Writes to BQ
         resources.write_to_bq(data)
-        message = f"Respondent data saved successfully."
+        message = "Respondent data saved successfully."
         app.logger.info(message)
         return {"message": message}, 200
 
