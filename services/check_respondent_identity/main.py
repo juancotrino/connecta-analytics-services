@@ -150,6 +150,7 @@ def write_respondent():
         "gender": request.get_json().get("gender").strip().lower(),
         "project_type": request.get_json().get("project_type").strip().lower(),
         "response_datetime": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        "study_id": int(request.get_json().get("study_id").strip()),
     }
     app.logger.info("Data dictionary builded")
 
