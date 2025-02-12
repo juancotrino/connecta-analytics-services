@@ -2,7 +2,7 @@ name: Build and Deploy to Cloud Run
 
 on:
   push:
-    branches: ["dev"]
+    branches: ["feature/dynamic-cloud-run-config"]
 
   workflow_dispatch:
     inputs:
@@ -15,6 +15,8 @@ env:
   PROJECT_ID: "connecta-app-1" # TODO: update Google Cloud project id
   GAR_LOCATION: "us-central1" # TODO: update Artifact Registry location
   REGION: "us-central1" # TODO: update Cloud Run service region
+  DEPLOY_FLAGS: ""
+  ENV_VARS: ""
 
 jobs:
   detect-changes:
@@ -137,6 +139,53 @@ jobs:
           workload_identity_provider: "${{ secrets.WIF_PROVIDER }}"
           service_account: "${{ secrets.WIF_SERVICE_ACCOUNT }}"
 
+      - name: Install yq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+          sudo apt-get install -y python3-pip
+          pip3 install yq
+
+      # Step 1: Read Service Config
+      - name: Read Service Config from config.yaml
+        id: read_config
+        run: |
+          SERVICE_NAME="${{ matrix.sanitized_service }}"
+          FLAGS=$(yq eval ".services.${SERVICE_NAME}" config.yml)
+
+          # Extract flags from YAML file
+          MEMORY=$(echo "$FLAGS" | yq eval '.memory' -)
+          CPU=$(echo "$FLAGS" | yq eval '.cpu' -)
+          CONCURRENCY=$(echo "$FLAGS" | yq eval '.concurrency' -)
+          TIMEOUT=$(echo "$FLAGS" | yq eval '.timeout' -)
+          MAX_INSTANCES=$(echo "$FLAGS" | yq eval '.max-instances' -)
+          ALLOW_UNAUTHENTICATED=$(echo "$FLAGS" | yq eval '.allow-unauthenticated' -)
+
+          # Build the flags string
+          DEPLOY_FLAGS=""
+          DEPLOY_FLAGS="$DEPLOY_FLAGS --memory=$MEMORY"
+          DEPLOY_FLAGS="$DEPLOY_FLAGS --cpu=$CPU"
+          DEPLOY_FLAGS="$DEPLOY_FLAGS --concurrency=$CONCURRENCY"
+          DEPLOY_FLAGS="$DEPLOY_FLAGS --timeout=$TIMEOUT"
+          DEPLOY_FLAGS="$DEPLOY_FLAGS --max-instances=$MAX_INSTANCES"
+          if [ "$ALLOW_UNAUTHENTICATED" == "true" ]; then
+            DEPLOY_FLAGS="$DEPLOY_FLAGS --allow-unauthenticated"
+          fi
+
+          # Extract environment variables for this service
+          ENV_VARS=$(echo "$FLAGS" | yq eval '.env-vars' -)
+
+          # Build the environment variables string for deployment
+          ENV_VARS_STRING=""
+          for env_var in $(echo "$ENV_VARS" | jq -r 'keys[]'); do
+            VALUE=$(echo "$ENV_VARS" | jq -r ".${env_var}")
+            ENV_VARS_STRING="$ENV_VARS_STRING\n$env_var=${VALUE}"
+          done
+
+          # Output the flags and environment variables as environment variables for the deploy step
+          echo "DEPLOY_FLAGS=$DEPLOY_FLAGS" >> $GITHUB_ENV
+          echo "ENV_VARS=$ENV_VARS_STRING" >> $GITHUB_ENV
+
       - name: Deploy Changed Service to Cloud Run
         id: deploy
         uses: "google-github-actions/deploy-cloudrun@v2"
@@ -144,20 +193,8 @@ jobs:
           service: service-${{ matrix.sanitized_service }}
           region: ${{ env.REGION }}
           source: services/${{ matrix.folder_path_service }}
-          flags: |
-            --allow-unauthenticated
-            --memory=256Mi
-            --cpu=1
-            --concurrency=100
-            --timeout=3600
-            --max-instances=10
-            --service-account=${{ secrets.APP_SERVICE_ACCOUNT }}
-          env_vars: |
-            ENV=${{ vars.ENV }}
-            TWILIO_ACCOUNT_SID=${{ secrets.TWILIO_ACCOUNT_SID }}
-            TWILIO_AUTH_TOKEN=${{ secrets.TWILIO_AUTH_TOKEN }}
-            TWILIO_SERVICE_SID=${{ secrets.TWILIO_SERVICE_SID }}
-            GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
+          flags: ${{ env.DEPLOY_FLAGS }}
+          env_vars: ${{ env.ENV_VARS }}
 
       - name: Show Output URL
         run: echo ${{ steps.deploy.outputs.url }}
