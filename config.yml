@@ -1,0 +1,27 @@
+services:
+  service-check-respondent-identity:
+    memory: 256Mi
+    cpu: 1
+    concurrency: 100
+    timeout: 60
+    max-instances: 5
+    allow-unauthenticated: true
+    service-account: "${{ secrets.APP_SERVICE_ACCOUNT }}"
+    env-vars:
+      ENV: "${{ vars.ENV }}"
+      TWILIO_ACCOUNT_SID: "${{ secrets.TWILIO_ACCOUNT_SID }}"
+      TWILIO_AUTH_TOKEN: "${{ secrets.TWILIO_AUTH_TOKEN }}"
+      TWILIO_SERVICE_SID: "${{ secrets.TWILIO_SERVICE_SID }}"
+      GCP_PROJECT_ID: "${{ secrets.GCP_PROJECT_ID }}"
+
+  service-processing:
+    memory: 512Mi
+    cpu: 1
+    concurrency: 5
+    timeout: 600
+    max-instances: 5
+    allow-unauthenticated: true
+    service-account: "${{ secrets.APP_SERVICE_ACCOUNT }}"
+    env-vars:
+      ENV: "${{ vars.ENV }}"
+      GCP_PROJECT_ID: "${{ secrets.GCP_PROJECT_ID }}"
