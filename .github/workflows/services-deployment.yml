@@ -196,8 +196,8 @@ jobs:
           source: services/${{ matrix.folder_path_service }}
           flags: ${{ env.DEPLOY_FLAGS }}
           env_vars: ${{ env.ENV_VARS }}
-          env_vars_update_strategy: "replace" # Overwrite existing environment variables
-          secrets_update_strategy: "replace" # Overwrite existing secrets
+          env_vars_update_strategy: "overwrite" # Overwrite existing environment variables
+          secrets_update_strategy: "overwrite" # Overwrite existing secrets
 
       - name: Show Output URL
         run: echo ${{ steps.deploy.outputs.url }}
