@@ -146,6 +146,9 @@ jobs:
           sudo apt-get install -y python3-pip
           pip3 install yq
 
+      - name: List files in the current directory
+        run: ls -la
+
       # Step 1: Read Service Config
       - name: Read Service Config from config.yaml
         id: read_config
