@@ -154,7 +154,7 @@ jobs:
         id: read_config
         run: |
           SERVICE_NAME="${{ matrix.sanitized_service }}"
-          FLAGS=$(yq eval ".services.${SERVICE_NAME}" config.yml)
+          FLAGS=$(cat config.yml | yq ".services.${SERVICE_NAME}")
 
           # Extract flags from YAML file
           MEMORY=$(echo "$FLAGS" | yq eval '.memory' -)
