@@ -618,6 +618,7 @@ class DataProcessor:
                 inner_df = (
                     data.loc[question_group, columns_category_groups]
                     .map(DataProcessor.extract_digits)
+                    .astype(float)
                     .replace({None: np.nan})
                     .dropna(axis=1, how="all")
                 )
@@ -901,11 +902,11 @@ def calculate_statistical_significance(xlsx_file: str):
                 row=1, column=excel_writer.index_totals
             ).value = sheet_name
 
-            excel_writer.replicate_with_formatting(existing_worksheet, new_worksheet)
+            excel_writer.replicate_with_formatting(totals_worksheet, new_worksheet)
 
     excel_writer.format_columns(totals_worksheet)
 
     output_xlsx_file = xlsx_file.replace(".xlsx", "_processed.xlsx")
-    excel_writer.workbook.save(output_xlsx_file)
+    new_workbook.save(output_xlsx_file)
 
     return output_xlsx_file

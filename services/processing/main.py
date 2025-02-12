@@ -1,4 +1,5 @@
 import os
+import tempfile
 
 from flask import Flask, request, send_file
 
@@ -44,12 +45,15 @@ def statistical_processing():
 
     try:
         # Save the uploaded file temporarily
-        temp_input_path = os.path.join("temp", uploaded_file.filename)
+        temp_input_path = os.path.join(tempfile.gettempdir(), uploaded_file.filename)
         os.makedirs(os.path.dirname(temp_input_path), exist_ok=True)
         uploaded_file.save(temp_input_path)
 
         temp_output_path = resources.calculate_statistical_significance(temp_input_path)
-
+        app.logger.info(
+            f"Statistical significance for file '{uploaded_file.filename}' "
+            "calculated successfully."
+        )
         # Return the processed file
         return send_file(temp_output_path, as_attachment=True)
 
