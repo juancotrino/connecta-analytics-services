@@ -146,15 +146,12 @@ jobs:
           sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod a+x /usr/local/bin/yq
 
-      - name: List files in the current directory
-        run: ls -la
-
       # Step 1: Read Service Config
       - name: Read Service Config from config.yaml
         id: read_config
         run: |
           SERVICE_NAME="${{ matrix.sanitized_service }}"
-          FLAGS=$(yq eval ".services.$SERVICE_NAME" config.yml)
+          FLAGS=$(yq eval ".services.${SERVICE_NAME}" config.yml)
 
           # Extract flags from YAML file
           MEMORY=$(echo "$FLAGS" | yq eval '.memory' -)
@@ -180,10 +177,11 @@ jobs:
 
           # Build the environment variables string for deployment
           ENV_VARS_STRING=""
-          for env_var in $(echo "$ENV_VARS" | jq -r 'keys[]'); do
-            VALUE=$(echo "$ENV_VARS" | jq -r ".${env_var}")
-            ENV_VARS_STRING="$ENV_VARS_STRING\n$env_var=${VALUE}"
+          for env_var in $(echo "$ENV_VARS" | yq eval 'keys | .[]' -); do
+            VALUE=$(echo "$ENV_VARS" | yq eval ".$env_var" -)
+            ENV_VARS_STRING="$ENV_VARS_STRING,$env_var=$VALUE"
           done
+          ENV_VARS_STRING=${ENV_VARS_STRING:1}
 
           # Output the flags and environment variables as environment variables for the deploy step
           echo "DEPLOY_FLAGS=$DEPLOY_FLAGS" >> $GITHUB_ENV
@@ -198,6 +196,8 @@ jobs:
           source: services/${{ matrix.folder_path_service }}
           flags: ${{ env.DEPLOY_FLAGS }}
           env_vars: ${{ env.ENV_VARS }}
+          env_vars_update_strategy: "replace" # Overwrite existing environment variables
+          secrets_update_strategy: "replace" # Overwrite existing secrets
 
       - name: Show Output URL
         run: echo ${{ steps.deploy.outputs.url }}
