@@ -1,5 +1,5 @@
 services:
-  service-check-respondent-identity:
+  check-respondent-identity:
     memory: 256Mi
     cpu: 1
     concurrency: 100
@@ -14,7 +14,7 @@ services:
       TWILIO_SERVICE_SID: "${{ secrets.TWILIO_SERVICE_SID }}"
       GCP_PROJECT_ID: "${{ secrets.GCP_PROJECT_ID }}"
 
-  service-processing:
+  processing:
     memory: 512Mi
     cpu: 1
     concurrency: 5
