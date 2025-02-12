@@ -143,8 +143,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y jq
-          sudo apt-get install -y python3-pip
-          pip3 install yq
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod a+x /usr/local/bin/yq
 
       - name: List files in the current directory
         run: ls -la
@@ -154,7 +154,7 @@ jobs:
         id: read_config
         run: |
           SERVICE_NAME="${{ matrix.sanitized_service }}"
-          FLAGS=$(cat config.yml | yq ".services.${SERVICE_NAME}")
+          FLAGS=$(yq eval ".services.$SERVICE_NAME" config.yml)
 
           # Extract flags from YAML file
           MEMORY=$(echo "$FLAGS" | yq eval '.memory' -)
