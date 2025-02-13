@@ -146,13 +146,17 @@ def write_respondent():
         "country": country,
         "phone_number": phone_number,
         "name": request.get_json().get("name").strip().lower(),
-        "age": int(request.get_json().get("age").strip()),
+        "age": (
+            int(request.get_json().get("age").strip())
+            if request.get_json().get("age")
+            else None
+        ),
         "gender": request.get_json().get("gender").strip().lower(),
         "project_type": request.get_json().get("project_type").strip().lower(),
         "response_datetime": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
         "study_id": int(request.get_json().get("study_id").strip()),
     }
-    app.logger.info("Data dictionary builded")
+    app.logger.info(f"Data dictionary builded: {data}")
 
     try:
         # Writes to BQ
