@@ -1,130 +1,53 @@
-name: Build and Deploy to Cloud Run
+name: Build and Push Image
 
 on:
   push:
-    branches: ["dev"]
+    branches:
+      - refactor/terraform-implementation
+    paths:
+      - "services/**"
+      - "terraform/**"
 
   workflow_dispatch:
     inputs:
       ref:
         description: "Branch or tag reference"
         required: true
-        default: "dev"
+        default: "refactor/terraform-implementation"
 
 env:
   PROJECT_ID: "connecta-app-1" # TODO: update Google Cloud project id
-  GAR_LOCATION: "us-central1" # TODO: update Artifact Registry location
   REGION: "us-central1" # TODO: update Cloud Run service region
 
 jobs:
-  detect-changes:
-    name: Detect Changes
+  list-services:
     runs-on: ubuntu-latest
     outputs:
-      sanitized_services: ${{ steps.detect.outputs.sanitized_services }}
-      folder_path_services: ${{ steps.detect.outputs.folder_path_services }}
-      deleted_services: ${{ steps.detect.outputs.deleted_services }}
+      services: ${{ steps.list_services.outputs.services }}
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Detect Changed Services
-        id: detect
+      - name: List service directories and convert underscores to dashes
+        id: list_services
         run: |
-          # Fetch the full branch history to ensure we can diff properly
-          git fetch --unshallow || true
-          git fetch origin dev
+          # List the directories inside the services folder and convert underscores to dashes
+          services=$(find services -maxdepth 1 -mindepth 1 -type d -exec basename {} \;)
+          # Convert underscores to dashes for Docker image names
+          services_with_dashes=$(echo "$services" | sed 's/_/-/g' | jq -R . | jq -s .)
+          echo "Services found: $services_with_dashes"
+          echo "::set-output name=services::${services_with_dashes}"
 
-          # Ensure services/ directory exists
-          if [ ! -d "services" ]; then
-            echo "No 'services/' directory found. Exiting."
-            echo "sanitized_services=[]" >> $GITHUB_OUTPUT
-            echo "folder_path_services=[]" >> $GITHUB_OUTPUT
-            echo "deleted_services=[]" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          # Handle first commit scenario
-          if [ $(git rev-list --count HEAD) -eq 1 ]; then
-            echo "First commit detected, deploying all services."
-            CHANGED_SERVICES=$(ls services)
-          else
-            # Find directories that changed within services/
-            CHANGED_SERVICES=$(git diff --name-only HEAD~1 HEAD | grep -o 'services/[^/]*/' | uniq | xargs -n1 basename || echo "")
-          fi
-
-          # Filter out deleted services
-          EXISTING_SERVICES=$(ls services)
-          CHANGED_SERVICES=$(echo "$CHANGED_SERVICES" | grep -Fx -f <(echo "$EXISTING_SERVICES") || echo "")
-          DELETED_SERVICES=$(git diff --name-only HEAD~1 HEAD --diff-filter=D | grep -o 'services/[^/]*/' | uniq | xargs -n1 basename || echo "")
-
-          if [ -z "$CHANGED_SERVICES" ]; then
-            echo "No services changed."
-            echo "sanitized_services=[]" >> $GITHUB_OUTPUT
-            echo "folder_path_services=[]" >> $GITHUB_OUTPUT
-          else
-            # Replace underscores with dashes in service names
-            SANITIZED_SERVICES=$(echo "$CHANGED_SERVICES" | sed 's/_/-/g' | jq -R -s -c 'split("\n")[:-1]')
-            FOLDER_PATH_SERVICES=$(echo "$CHANGED_SERVICES" | jq -R -s -c 'split("\n")[:-1]')
-          fi
-
-          # Process deleted services
-          if [ -z "$DELETED_SERVICES" ]; then
-            DELETED_SERVICES="[]"
-          else
-            DELETED_SERVICES=$(echo "$DELETED_SERVICES" | sed 's/_/-/g' | jq -R -s -c 'split("\n")[:-1]')
-            echo "Deleted services: $DELETED_SERVICES"
-          fi
-
-          echo "Changed services (sanitized): $SANITIZED_SERVICES"
-          echo "Changed services (folder paths): $FOLDER_PATH_SERVICES"
-
-          echo "sanitized_services=${SANITIZED_SERVICES}" >> $GITHUB_OUTPUT
-          echo "folder_path_services=${FOLDER_PATH_SERVICES}" >> $GITHUB_OUTPUT
-          echo "deleted_services=${DELETED_SERVICES}" >> $GITHUB_OUTPUT
-
-  delete-services:
-    name: Delete Services
+  build-container-image:
+    name: Build Container Image
+    needs: list-services
     permissions:
       contents: "read"
       id-token: "write"
-    needs: detect-changes
-    if: ${{ needs.detect-changes.outputs.deleted_services != '[]' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        deleted_service: ${{ fromJson(needs.detect-changes.outputs.deleted_services) }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Google Auth
-        uses: "google-github-actions/auth@v2"
-        with:
-          token_format: "access_token"
-          workload_identity_provider: "${{ secrets.WIF_PROVIDER }}"
-          service_account: "${{ secrets.WIF_SERVICE_ACCOUNT }}"
-
-      - name: Delete Service
-        run: |
-          gcloud run services delete service-${{ matrix.deleted_service }} \
-            --region=${{ env.REGION }} \
-            --quiet
-
-  deploy-services:
-    name: Deploy Services
-    # Add 'id-token' with the intended permissions for workload identity federation
-    permissions:
-      contents: "read"
-      id-token: "write"
-    needs: detect-changes
-    if: ${{ needs.detect-changes.outputs.folder_path_services && needs.detect-changes.outputs.folder_path_services != '[]' }}
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        folder_path_service: ${{ fromJson(needs.detect-changes.outputs.folder_path_services) }}
-        sanitized_service: ${{ fromJson(needs.detect-changes.outputs.sanitized_services) }}
-      fail-fast: false
+        service: ${{ fromJson(needs.list-services.outputs.services) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -132,32 +55,26 @@ jobs:
       - name: Google Auth
         id: auth
         uses: "google-github-actions/auth@v2"
+
         with:
           token_format: "access_token"
-          workload_identity_provider: "${{ secrets.WIF_PROVIDER }}"
-          service_account: "${{ secrets.WIF_SERVICE_ACCOUNT }}"
+          workload_identity_provider: "${{ secrets.WIF_PROVIDER }}" # e.g. - projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider
+          service_account: "${{ secrets.WIF_SERVICE_ACCOUNT }}" # e.g. - my-service-account@my-project.iam.gserviceaccount.com
 
-      - name: Deploy Changed Service to Cloud Run
-        id: deploy
-        uses: "google-github-actions/deploy-cloudrun@v2"
+      # Authenticate Docker to Google Cloud Artifact Registry
+      - name: Docker Auth
+        id: docker-auth
+        uses: "docker/login-action@v2"
         with:
-          service: service-${{ matrix.sanitized_service }}
-          region: ${{ env.REGION }}
-          source: services/${{ matrix.folder_path_service }}
-          flags: |
-            --allow-unauthenticated
-            --memory=256Mi
-            --cpu=1
-            --concurrency=100
-            --timeout=3600
-            --max-instances=10
-            --service-account=${{ secrets.APP_SERVICE_ACCOUNT }}
-          env_vars: |
-            ENV=${{ vars.ENV }}
-            TWILIO_ACCOUNT_SID=${{ secrets.TWILIO_ACCOUNT_SID }}
-            TWILIO_AUTH_TOKEN=${{ secrets.TWILIO_AUTH_TOKEN }}
-            TWILIO_SERVICE_SID=${{ secrets.TWILIO_SERVICE_SID }}
-            GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
+          username: "oauth2accesstoken"
+          password: "${{ steps.auth.outputs.access_token }}"
+          registry: "${{ env.REGION }}-docker.pkg.dev"
 
-      - name: Show Output URL
-        run: echo ${{ steps.deploy.outputs.url }}
+      - name: Build and push Docker image for ${{ matrix.service }}
+        run: |
+          # Convert underscores to dashes for the Docker image name
+          image_name=$(echo "${{ matrix.service }}" | sed 's/_/-/g')
+          echo "Building and pushing Docker image for ${{ matrix.service }} as $image_name"
+          cd services/${{ matrix.service }}
+          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/connecta-services/$image_name .
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/connecta-services/$image_name
