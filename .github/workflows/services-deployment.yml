@@ -89,7 +89,7 @@ jobs:
         run: |
           # Convert underscores to dashes for the Docker image name
           image_name=$(echo "${{ matrix.service }}" | sed 's/_/-/g')
-          echo "Building and pushing Docker image for ${{ matrix.service }} as $image_name"
+          echo "Building and pushing Docker image for '${{ matrix.service }}' as '$image_name'"
           cd services/${{ matrix.service }}
           docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/connecta-services/$image_name .
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/connecta-services/$image_name
