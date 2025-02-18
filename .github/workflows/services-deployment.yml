@@ -33,12 +33,20 @@ jobs:
       - name: List service directories and convert underscores to dashes
         id: list_services
         run: |
-          # List the directories inside the services folder and convert underscores to dashes
+          # List the directories inside the services folder
           services=$(find services -maxdepth 1 -mindepth 1 -type d -exec basename {} \;)
+
           # Convert underscores to dashes for Docker image names
-          services_with_dashes=$(echo "$services" | sed 's/_/-/g' | jq -R . | jq -s .)
+          services_with_dashes=$(echo "$services" | sed 's/_/-/g')
+
+          # Print the found services (for debugging)
           echo "Services found: $services_with_dashes"
-          echo "services=$services_with_dashes" >> $GITHUB_OUTPUT
+
+          # Ensure the output is formatted correctly as a JSON array for matrix
+          services_json=$(echo "$services_with_dashes" | jq -R . | jq -s .)
+
+          # Set the services output to a valid JSON string (use GITHUB_OUTPUT)
+          echo "services=$services_json" >> $GITHUB_OUTPUT
 
   build-container-image:
     name: Build Container Image
