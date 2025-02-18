@@ -7,6 +7,7 @@ on:
     paths:
       - "services/**"
       - "terraform/**"
+      - ".github/**"
 
   workflow_dispatch:
     inputs:
@@ -37,7 +38,7 @@ jobs:
           # Convert underscores to dashes for Docker image names
           services_with_dashes=$(echo "$services" | sed 's/_/-/g' | jq -R . | jq -s .)
           echo "Services found: $services_with_dashes"
-          echo "services=${services_with_dashes}" >> $GITHUB_OUTPUT
+          echo "services=$services_with_dashes" >> $GITHUB_OUTPUT
 
   build-container-image:
     name: Build Container Image
