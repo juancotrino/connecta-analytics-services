@@ -36,15 +36,9 @@ jobs:
           # List the directories inside the services folder
           services=$(find services -maxdepth 1 -mindepth 1 -type d -exec basename {} \;)
 
-          # Convert underscores to dashes for Docker image names
-          services_with_dashes=$(echo "$services" | sed 's/_/-/g')
-
-          # Print the found services (for debugging purposes)
-          echo "Services found: $services_with_dashes"
-
           # Ensure the output is formatted correctly as a JSON array for the matrix
           # Create a JSON array from the service names
-          services_json=$(echo "$services_with_dashes" | jq -R . | jq -s .)
+          services_json=$(echo "$services" | jq -R . | jq -s .)
 
           # Debug the output to ensure it's correct
           echo "Formatted JSON services: $services_json"
