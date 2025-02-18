@@ -21,6 +21,7 @@ env:
 
 jobs:
   list-services:
+    name: List Services
     runs-on: ubuntu-latest
     outputs:
       services: ${{ steps.list_services.outputs.services }}
@@ -36,7 +37,7 @@ jobs:
           # Convert underscores to dashes for Docker image names
           services_with_dashes=$(echo "$services" | sed 's/_/-/g' | jq -R . | jq -s .)
           echo "Services found: $services_with_dashes"
-          echo "::set-output name=services::${services_with_dashes}"
+          echo "services=${services_with_dashes}" >> $GITHUB_OUTPUT
 
   build-container-image:
     name: Build Container Image
