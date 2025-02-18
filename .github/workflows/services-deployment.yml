@@ -50,7 +50,8 @@ jobs:
           echo "Formatted JSON services: $services_json"
 
           # Set the output correctly using GITHUB_OUTPUT
-          echo "services=$services_json" >> $GITHUB_OUTPUT
+          # Use `jq -c` to compact the JSON into a single line
+          echo "services=$(echo "$services_json" | jq -c .)" >> $GITHUB_OUTPUT
 
   build-container-image:
     name: Build Container Image
