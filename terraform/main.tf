@@ -4,7 +4,7 @@ module "service_check_respondent_identity" {
   version = "~> 0.10.0"
 
   project_id            = var.project_id
-  service_name          = "service-check-respondent-identity-tf-test"
+  service_name          = "service-check-respondent-identity-tf-test-2"
   location              = var.region
   image                 = "${var.region}-docker.pkg.dev/${var.project_id}/connecta-services/check-respondent-identity:latest"
   service_account_email = var.service_account_email
@@ -52,7 +52,7 @@ module "service_processing" {
   version = "~> 0.10.0"
 
   project_id            = var.project_id
-  service_name          = "service-processing-tf-test"
+  service_name          = "service-processing-tf-test-2"
   location              = var.region
   image                 = "${var.region}-docker.pkg.dev/${var.project_id}/connecta-services/processing:latest"
   service_account_email = var.service_account_email
