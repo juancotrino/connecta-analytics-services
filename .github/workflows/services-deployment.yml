@@ -91,6 +91,7 @@ jobs:
 
   terraform:
     name: Terraform Deployment
+    needs: build-container-image
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
