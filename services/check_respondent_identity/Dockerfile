@@ -8,8 +8,8 @@ COPY . .
 
 RUN pip install -r requirements.txt
 
-ENV PORT 8080
+ENV PORT=8080
 
 EXPOSE ${PORT}
 
-ENTRYPOINT python main.py
+ENTRYPOINT ["python", "main.py"]

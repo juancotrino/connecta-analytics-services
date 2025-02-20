@@ -19,6 +19,7 @@ on:
 env:
   PROJECT_ID: "connecta-app-1" # TODO: update Google Cloud project id
   REGION: "us-central1" # TODO: update Cloud Run service region
+  ENVIRONMENT: "dev"
 
 jobs:
   list-services:
@@ -79,7 +80,7 @@ jobs:
           password: "${{ steps.auth.outputs.access_token }}"
           registry: "${{ env.REGION }}-docker.pkg.dev"
 
-      - name: Build and push Docker image for ${{ matrix.service }}
+      - name: Build and push Docker image for [${{ matrix.service }}]
         run: |
           # Convert underscores to dashes for the Docker image name
           image_name=$(echo "${{ matrix.service }}" | sed 's/_/-/g')
@@ -87,3 +88,31 @@ jobs:
           cd services/${{ matrix.service }}
           docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/connecta-services/$image_name .
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/connecta-services/$image_name
+
+  terraform:
+    name: Terraform Deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Google Auth
+        id: auth
+        uses: "google-github-actions/auth@v2"
+
+        with:
+          token_format: "access_token"
+          workload_identity_provider: "${{ secrets.WIF_PROVIDER }}" # e.g. - projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider
+          service_account: "${{ secrets.WIF_SERVICE_ACCOUNT }}" # e.g. - my-service-account@my-project.iam.gserviceaccount.com
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Terraform Init
+        run: terraform init # -backend-config="bucket=${{ secrets.TERRAFORM_BUCKET }}" -backend-config="prefix=${{ env.ENVIRONMENT }}"
+
+      - name: Terraform Plan
+        run: terraform plan -var-file="environments/${{ env.ENVIRONMENT }}.tfvars"
+
+      - name: Terraform Apply
+        run: terraform apply -var-file="environments/${{ env.ENVIRONMENT }}.tfvars" -auto-approve
