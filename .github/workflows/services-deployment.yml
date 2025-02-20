@@ -155,6 +155,6 @@ jobs:
         run: |
           cd terraform
           terraform init \
-            -backend-config="bucket=${{ secrets.TF_BACKEND_BUCKET }}-${{ env.ENVIRONMENT }}" \
-            -backend-config="prefix=${{ secrets.TF_BACKEND_PREFIX }}"
+            -backend-config="bucket=${{ secrets.TF_BACKEND_BUCKET }}" \
+            -backend-config="prefix=${{ secrets.TF_BACKEND_PREFIX }}/${{ env.ENVIRONMENT }}"
           terraform apply -auto-approve
