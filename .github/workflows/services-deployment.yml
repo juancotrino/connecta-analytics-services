@@ -143,13 +143,15 @@ jobs:
         uses: hashicorp/setup-terraform@v2
 
       - name: Terraform Init - Apply
-        run: terraform init
-
-      - name: Terraform Apply
         env:
           TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
           TF_VAR_region: ${{ env.REGION }}
           TF_VAR_environment: ${{ env.ENVIRONMENT }}
           TF_VAR_service_account_email: ${{ secrets.APP_SERVICE_ACCOUNT }}
           TF_VAR_changed_services: ${{ env.CHANGED_SERVICES }}
-        run: terraform apply -auto-approve
+        run: |
+          cd terraform
+          terraform init \
+            -backend-config="bucket=${{ secrets.TF_BACKEND_BUCKET }}-${{ env.ENVIRONMENT }}" \
+            -backend-config="prefix=${{ secrets.TF_BACKEND_PREFIX }}"
+          terraform apply -auto-approve
