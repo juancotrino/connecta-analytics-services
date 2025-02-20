@@ -82,6 +82,7 @@ jobs:
   build-container-image:
     name: Build Container Image
     needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.folder_path_services && needs.detect-changes.outputs.folder_path_services != '[]' }}
     permissions:
       contents: "read"
       id-token: "write"
