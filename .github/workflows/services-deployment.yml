@@ -92,6 +92,9 @@ jobs:
   terraform:
     name: Terraform Deployment
     needs: build-container-image
+    permissions:
+      contents: "read"
+      id-token: "write"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
