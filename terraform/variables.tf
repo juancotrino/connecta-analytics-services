@@ -36,3 +36,8 @@ variable "template_annotations" {
     "autoscaling.knative.dev/maxScale" = 5
   }
 }
+
+variable "changed_services" {
+  description = "List of services that need to be deployed"
+  type        = list(string)
+}
