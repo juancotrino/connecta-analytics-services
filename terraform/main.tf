@@ -14,7 +14,7 @@ module "service_check_respondent_identity" {
   container_concurrency = 10
   limits                = {
     cpu    = "1000m"
-    memory = "256Mi"
+    memory = "512Mi"
   }
   env_vars = [
     {
