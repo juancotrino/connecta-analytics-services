@@ -1,7 +1,5 @@
 # Define the Cloud Run services dynamically based on the changed services list
 module "service_check_respondent_identity" {
-  for_each = contains(var.changed_services, "service_check_respondent_identity") ? toset(["service_check_respondent_identity"]) : []
-
   source  = "GoogleCloudPlatform/cloud-run/google"
   version = "~> 0.10.0"
 
@@ -43,8 +41,6 @@ module "service_check_respondent_identity" {
 }
 
 resource "google_cloud_run_service_iam_member" "public_access_service_check_respondent_identity" {
-  for_each = module.service_check_respondent_identity != null ? toset([module.service_check_respondent_identity]) : []
-
   location = module.service_check_respondent_identity.location
   service  = module.service_check_respondent_identity.service_name
   role     = "roles/run.invoker"
@@ -52,8 +48,6 @@ resource "google_cloud_run_service_iam_member" "public_access_service_check_resp
 }
 
 module "service_processing" {
-  for_each = contains(var.changed_services, "service_processing") ? toset(["service_processing"]) : []
-
   source  = "GoogleCloudPlatform/cloud-run/google"
   version = "~> 0.10.0"
 
@@ -92,8 +86,6 @@ module "service_processing" {
 }
 
 resource "google_cloud_run_service_iam_member" "public_access_service_processing" {
-  for_each = module.service_processing != null ? toset([module.service_processing]) : []
-
   location = module.service_processing.location
   service  = module.service_processing.service_name
   role     = "roles/run.invoker"

@@ -32,7 +32,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Detect Changed Services
+      - name: Detect Changed Services Source Codes
         id: detect
         run: |
           # Fetch the full branch history to ensure we can diff properly
@@ -122,7 +122,10 @@ jobs:
 
   terraform:
     name: Terraform Deployment
-    needs: build-container-image
+    needs:
+      - detect-changes
+      - build-container-image
+    if: ${{ needs.detect-changes.outputs.folder_path_services && needs.detect-changes.outputs.folder_path_services == '[]' }}
     permissions:
       contents: "read"
       id-token: "write"
