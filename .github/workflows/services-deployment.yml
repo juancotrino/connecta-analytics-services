@@ -125,7 +125,7 @@ jobs:
     needs:
       - detect-changes
       - build-container-image
-    if: ${{ needs.detect-changes.outputs.folder_path_services && needs.detect-changes.outputs.folder_path_services == '[]' }}
+    if: ${{ always() }}
     permissions:
       contents: "read"
       id-token: "write"
