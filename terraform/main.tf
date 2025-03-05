@@ -91,3 +91,48 @@ resource "google_cloud_run_service_iam_member" "public_access_service_processing
   role     = "roles/run.invoker"
   member   = "allUsers"
 }
+
+module "service_study_administrator" {
+  source  = "GoogleCloudPlatform/cloud-run/google"
+  version = "~> 0.10.0"
+
+  project_id            = var.project_id
+  service_name          = "service-study-administrator"
+  location              = var.region
+  image                 = "${var.region}-docker.pkg.dev/${var.project_id}/connecta-services/study-administrator:latest"
+  service_account_email = var.service_account_email
+  template_annotations  = var.template_annotations
+  container_concurrency = 10
+  limits                = {
+    cpu    = "1000m"
+    memory = "256Mi"
+  }
+  env_vars = [
+    {
+      name  = "ENV"
+      value = var.environment
+    }
+  ]
+  env_secret_vars = [
+    for secret_name in [
+      "GCP_PROJECT_ID"
+    ] : {
+      name      = secret_name
+      value_from = [
+        {
+          secret_key_ref = {
+            name = secret_name
+            key  = "latest"
+          }
+        }
+      ]
+    }
+  ]
+}
+
+resource "google_cloud_run_service_iam_member" "public_access_service_processing" {
+  location = module.service_study_administrator.location
+  service  = module.service_study_administrator.service_name
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}
