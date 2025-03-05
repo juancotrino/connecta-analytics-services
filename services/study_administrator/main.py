@@ -54,6 +54,7 @@ def get_studies(
         raise HTTPException(
             status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=message
         )
+
     return studies
 
 
