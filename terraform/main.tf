@@ -130,7 +130,7 @@ module "service_study_administrator" {
   ]
 }
 
-resource "google_cloud_run_service_iam_member" "public_access_service_processing" {
+resource "google_cloud_run_service_iam_member" "public_access_service_study_administrator" {
   location = module.service_study_administrator.location
   service  = module.service_study_administrator.service_name
   role     = "roles/run.invoker"
