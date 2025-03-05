@@ -48,7 +48,6 @@ def get_studies(
 
     try:
         studies = resources.get_studies(limit, offset, **kwargs)
-        logger.error(f"This is a logger test: {studies[0]}")
     except Exception as e:
         message = f"Failed to fetch studies: {str(e)}"
         logger.error(message)
