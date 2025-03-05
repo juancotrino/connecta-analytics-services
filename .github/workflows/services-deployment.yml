@@ -117,8 +117,8 @@ jobs:
         run: |
           echo "Building and pushing Docker image for '${{ matrix.folder_path_service }}' as '${{ matrix.sanitized_service }}''"
           cd services/${{ matrix.folder_path_service }}
-          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/connecta-services/${{ matrix.sanitized_service }} .
-          docker push ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/connecta-services/${{ matrix.sanitized_service }}
+          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/connecta-services/${{ matrix.sanitized_service }}:latest .
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/connecta-services/${{ matrix.sanitized_service }}:latest
 
   terraform:
     name: Terraform Deployment
