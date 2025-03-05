@@ -191,3 +191,4 @@ jobs:
           echo "Updating Cloud Run service for '${{ matrix.folder_path_service }}' as '${{ matrix.sanitized_service }}''"
           gcloud run services update ${{ matrix.sanitized_service }} \
             --image=${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/connecta-services/${{ matrix.sanitized_service }}:latest
+            --region=${{ env.REGION }}
