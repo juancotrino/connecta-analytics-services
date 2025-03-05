@@ -158,3 +158,34 @@ jobs:
             -backend-config="bucket=${{ secrets.TF_BACKEND_BUCKET }}" \
             -backend-config="prefix=${{ secrets.TF_BACKEND_PREFIX }}/${{ env.ENVIRONMENT }}"
           terraform apply -auto-approve
+
+  update-cloud-run-image:
+    name: Update Cloud Run Image
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.folder_path_services && needs.detect-changes.outputs.folder_path_services != '[]' }}
+    permissions:
+      contents: "read"
+      id-token: "write"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        sanitized_service: ${{ fromJson(needs.detect-changes.outputs.sanitized_services) }}
+        folder_path_service: ${{ fromJson(needs.detect-changes.outputs.folder_path_services) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Google Auth
+        id: auth
+        uses: "google-github-actions/auth@v2"
+
+        with:
+          token_format: "access_token"
+          workload_identity_provider: "${{ secrets.WIF_PROVIDER }}" # e.g. - projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider
+          service_account: "${{ secrets.WIF_SERVICE_ACCOUNT }}" # e.g. - my-service-account@my-project.iam.gserviceaccount.com
+
+      - name: Update Cloud Run Service [${{ matrix.folder_path_service }}]
+        run: |
+          echo "Updating Cloud Run service for '${{ matrix.folder_path_service }}' as '${{ matrix.sanitized_service }}''"
+          gcloud run services update ${{ matrix.sanitized_service }} \
+            --image=${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/connecta-services/${{ matrix.sanitized_service }}:latest
