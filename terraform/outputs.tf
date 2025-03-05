@@ -7,3 +7,8 @@ output "service_processing_url" {
   value       = module.service_processing.service_url
   description = "The URL on which the service 'service_processing' is available"
 }
+
+output "service_study_administrator_url" {
+  value       = module.service_study_administrator.service_url
+  description = "The URL on which the service 'study_administrator' is available"
+}
