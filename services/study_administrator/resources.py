@@ -60,5 +60,4 @@ def get_studies(limit: int = 50, offset: int = 0, **kwargs) -> list[dict]:
         .dt.tz_convert("America/Bogota")
         .dt.tz_localize(None)
     )
-
-    return studies_data.to_dict(orient="records")
+    return studies_data.reset_index().to_dict(orient="records")

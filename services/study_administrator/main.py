@@ -1,54 +1,68 @@
 import os
+import logging
 
-from flask import Flask, request
+import uvicorn
+from fastapi import FastAPI, Query, HTTPException
+from fastapi import status as http_status
 
 from logger import setup_logging
 import resources
 
 ENV = os.getenv("ENV", "local")
 
-if ENV == "local":
-    from dotenv import load_dotenv
-
-    load_dotenv("../../.env")
-
 setup_logging()
 
-app = Flask(__name__)
+# Initialize API
+app = FastAPI()
+
+logger = logging.getLogger(__name__)
 
 
-@app.route("/check_health")
+@app.get("/check_health")
 def check_health():
     """
     Check the health of the service.
     """
-    return {"message": "Service is healthy."}, 200
+    return {"message": "Service is healthy."}
 
 
-@app.route("/get_studies", methods=["GET"])
-def get_studies():
-    limit = request.args.get("limit", 50, type=int)
-    offset = request.args.get("offset", 0, type=int)
-
+@app.get("/get_studies")
+def get_studies(
+    limit: int = 50,
+    offset: int = 0,
+    study_id: list[str] | None = Query(None),
+    status: list[str] | None = Query(None),
+    country: list[str] | None = Query(None),
+    client: list[str] | None = Query(None),
+    methodology: list[str] | None = Query(None),
+    study_type: list[str] | None = Query(None),
+):
     kwargs = {
-        "study_id": request.args.getlist("study_id"),
-        "status": request.args.getlist("status"),
-        "country": request.args.getlist("country"),
-        "client": request.args.getlist("client"),
-        "methodology": request.args.getlist("methodology"),
-        "study_type": request.args.getlist("study_type"),
+        "study_id": study_id,
+        "status": status,
+        "country": country,
+        "client": client,
+        "methodology": methodology,
+        "study_type": study_type,
     }
 
     try:
         studies = resources.get_studies(limit, offset, **kwargs)
+        logger.error(f"This is a logger test: {studies[0]}")
     except Exception as e:
         message = f"Failed to fetch studies: {str(e)}"
-        app.logger.error(message)
-        return {"message": message}, 500
-
-    return studies, 200
+        logger.error(message)
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=message
+        )
+    return studies
 
 
 if __name__ == "__main__":
+    if ENV == "local":
+        from dotenv import load_dotenv
+
+        load_dotenv(".env")
+
     debug = ENV == "local"
-    app.run(debug=debug, host="0.0.0.0", port=8080)
+    uvicorn.run("main:app", host="0.0.0.0", port=8080, reload=debug)
