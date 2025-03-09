@@ -1,6 +1,7 @@
 import os
 import time
 import random
+from datetime import datetime
 
 import pandas as pd
 
@@ -27,6 +28,16 @@ def handle_rate_limit(func):
                     raise Exception(f"Error: {e}")
 
     return wrapper
+
+
+def get_bigquery_type(py_type: type[any]) -> str:
+    type_mapping = {
+        int: "INT64",
+        float: "FLOAT64",
+        str: "STRING",
+        datetime: "DATETIME",
+    }
+    return type_mapping.get(py_type, "STRING")  # Default to STRING
 
 
 class BigQueryClient:
