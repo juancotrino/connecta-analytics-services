@@ -4,8 +4,9 @@ import logging
 import uvicorn
 from fastapi import FastAPI
 
+from utils.api_versions import add_api_versions
 from app.core.logger import setup_logging
-from app.api.v1.studies import router as studies_router
+
 
 ENV = os.getenv("ENV", "local")
 
@@ -13,7 +14,7 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 # Initialize API
-app = FastAPI(root_path="/api/v1")
+app = FastAPI()
 
 
 @app.get("/check_health", tags=["Health"])
@@ -24,7 +25,7 @@ def check_health():
     return {"message": "Service is healthy."}
 
 
-app.include_router(studies_router)
+add_api_versions(app)
 
 
 if __name__ == "__main__":
