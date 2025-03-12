@@ -136,3 +136,41 @@ resource "google_cloud_run_service_iam_member" "public_access_service_study_admi
   role     = "roles/run.invoker"
   member   = "allUsers"
 }
+
+###############################################################################
+
+module "service_accounts_storage" {
+  source        = "terraform-google-modules/service-accounts/google"
+  version       = "~> 4.0"
+  project_id    = var.project_id
+  prefix        = "sa"
+  names         = [
+    "service-storage-proxy",
+  ]
+  project_roles = [
+    "${var.project_id}=>roles/storage.objectAdmin",
+  ]
+}
+
+module "cloud_storage_buckets" {
+  source  = "terraform-google-modules/cloud-storage/google"
+  version = "~> 9.1"
+  project_id  = var.project_id
+  names = [
+    "processing",
+    "coding"
+  ]
+  prefix = "${var.project_id}-service"
+  location = "us-central1"
+  force_destroy = {
+    "processing" = true,
+    "coding"     = true,
+  }
+  admins = [
+    "serviceAccount:${module.service_accounts_storage.email}"
+  ]
+  folders = {
+    "processing" = ["landingzone", "processed", "archive"],
+    "coding"     = ["landingzone", "processed", "archive"],
+  }
+}
