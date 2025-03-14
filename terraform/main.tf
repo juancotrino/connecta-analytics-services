@@ -1,138 +1,120 @@
-# Define the Cloud Run services dynamically based on the changed services list
-module "service_check_respondent_identity" {
-  source  = "GoogleCloudPlatform/cloud-run/google"
-  version = "~> 0.10.0"
+module "cloud_run" {
+  source      = "./modules/cloud_run"
+  project_id  = var.project_id
+  region      = var.region
+  environment = var.environment
 
-  project_id            = var.project_id
-  service_name          = "service-check-respondent-identity"
-  location              = var.region
-  image                 = "${var.region}-docker.pkg.dev/${var.project_id}/connecta-services/check-respondent-identity:latest"
-  service_account_email = var.service_account_email
-  template_annotations  = var.template_annotations
-  container_concurrency = 10
-  limits                = {
-    cpu    = "1000m"
-    memory = "256Mi"
-  }
-  env_vars = [
+  services = [
     {
-      name  = "ENV"
-      value = var.environment
-    }
-  ]
-  env_secret_vars = [
-    for secret_name in [
-      "GCP_PROJECT_ID",
-      "TWILIO_ACCOUNT_SID",
-      "TWILIO_AUTH_TOKEN",
-      "TWILIO_SERVICE_SID"
-    ] : {
-      name      = secret_name
-      value_from = [
-        {
-          secret_key_ref = {
-            name = secret_name
-            key  = "latest"
-          }
-        }
+      name   = "service-check-respondent-identity"
+      image  = "${var.region}-docker.pkg.dev/${var.project_id}/connecta-services/check-respondent-identity:latest"
+      cpu    = "1000m"
+      memory = "256Mi"
+      service_account_email = var.service_account_email
+      template_annotations  = var.template_annotations
+      secrets = [
+        "GCP_PROJECT_ID",
+        "TWILIO_ACCOUNT_SID",
+        "TWILIO_AUTH_TOKEN",
+        "TWILIO_SERVICE_SID"
+      ]
+    },
+    {
+      name   = "service-processing"
+      image  = "${var.region}-docker.pkg.dev/${var.project_id}/connecta-services/processing:latest"
+      cpu    = "1000m"
+      memory = "512Mi"
+      service_account_email = var.service_account_email
+      template_annotations  = var.template_annotations
+      secrets = [
+        "GCP_PROJECT_ID"
+      ]
+    },
+    {
+      name   = "service-study-administrator"
+      image  = "${var.region}-docker.pkg.dev/${var.project_id}/connecta-services/study-administrator:latest"
+      cpu    = "1000m"
+      memory = "256Mi"
+      service_account_email = var.service_account_email
+      template_annotations  = var.template_annotations
+      secrets = [
+        "GCP_PROJECT_ID"
       ]
     }
   ]
 }
 
-resource "google_cloud_run_service_iam_member" "public_access_service_check_respondent_identity" {
-  location = module.service_check_respondent_identity.location
-  service  = module.service_check_respondent_identity.service_name
-  role     = "roles/run.invoker"
-  member   = "allUsers"
+
+###############################################################################
+
+# Grant the Cloud Storage service account permission to publish pub/sub topics
+data "google_storage_project_service_account" "gcs_account" {}
+resource "google_project_iam_member" "pubsubpublisher" {
+  project = var.project_id
+  role    = "roles/pubsub.publisher"
+  member  = "serviceAccount:${data.google_storage_project_service_account.gcs_account.email_address}"
 }
 
-module "service_processing" {
-  source  = "GoogleCloudPlatform/cloud-run/google"
-  version = "~> 0.10.0"
+module "cloud_storage" {
+  source  = "terraform-google-modules/cloud-storage/google"
+  version = "~> 9.1"
 
-  project_id            = var.project_id
-  service_name          = "service-processing"
-  location              = var.region
-  image                 = "${var.region}-docker.pkg.dev/${var.project_id}/connecta-services/processing:latest"
-  service_account_email = var.service_account_email
-  template_annotations  = var.template_annotations
-  container_concurrency = 10
-  limits                = {
-    cpu    = "1000m"
-    memory = "512Mi"
+  project_id  = var.project_id
+  names       = var.services_names # Use the variable here
+  prefix      = "${var.project_id}-service"
+  location    = var.region
+
+  force_destroy = {
+    for name in var.services_names : name => true
   }
-  env_vars = [
-    {
-      name  = "ENV"
-      value = var.environment
-    }
+
+  admins = [
+    "serviceAccount:${module.service_account.service_accounts["service-storage-proxy"]}@${var.project_id}.iam.gserviceaccount.com"
   ]
-  env_secret_vars = [
-    for secret_name in [
-      "GCP_PROJECT_ID"
-    ] : {
-      name      = secret_name
-      value_from = [
-        {
-          secret_key_ref = {
-            name = secret_name
-            key  = "latest"
-          }
-        }
-      ]
-    }
-  ]
-}
 
-resource "google_cloud_run_service_iam_member" "public_access_service_processing" {
-  location = module.service_processing.location
-  service  = module.service_processing.service_name
-  role     = "roles/run.invoker"
-  member   = "allUsers"
-}
-
-module "service_study_administrator" {
-  source  = "GoogleCloudPlatform/cloud-run/google"
-  version = "~> 0.10.0"
-
-  project_id            = var.project_id
-  service_name          = "service-study-administrator"
-  location              = var.region
-  image                 = "${var.region}-docker.pkg.dev/${var.project_id}/connecta-services/study-administrator:latest"
-  service_account_email = var.service_account_email
-  template_annotations  = var.template_annotations
-  container_concurrency = 10
-  limits                = {
-    cpu    = "1000m"
-    memory = "256Mi"
+  folders = {
+    for name in var.services_names : name => ["landingzone", "processed", "archive"]
   }
-  env_vars = [
+}
+
+############################################################################
+
+module "service_account" {
+  source     = "./modules/service_account"
+
+  project_id = var.project_id
+  service_account_groups = [
     {
-      name  = "ENV"
-      value = var.environment
-    }
-  ]
-  env_secret_vars = [
-    for secret_name in [
-      "GCP_PROJECT_ID"
-    ] : {
-      name      = secret_name
-      value_from = [
-        {
-          secret_key_ref = {
-            name = secret_name
-            key  = "latest"
-          }
-        }
+      prefix = ""
+      service_accounts = [split("@", var.service_account_email)[0]]
+      project_roles = [
+        "${var.project_id}=>roles/eventarc.eventReceiver",
+        # "${var.project_id}=>roles/eventarc.runinvoker",
+        "${var.project_id}=>roles/aiplatform.user",
+        "${var.project_id}=>roles/bigquery.user",
+        "${var.project_id}=>roles/datastore.user",
+        "${var.project_id}=>roles/firebaseauth.admin",
+        "${var.project_id}=>roles/firebasestorage.admin",
+        "${var.project_id}=>roles/iam.serviceAccountUser",
+        "${var.project_id}=>roles/secretmanager.secretAccessor",
+        "${var.project_id}=>roles/storage.objectUser"
       ]
-    }
+    },
+    {
+      prefix = "sa"
+      service_accounts = ["service-storage-proxy"]
+      project_roles = ["${var.project_id}=>roles/storage.objectAdmin"]
+    },
   ]
 }
 
-resource "google_cloud_run_service_iam_member" "public_access_service_study_administrator" {
-  location = module.service_study_administrator.location
-  service  = module.service_study_administrator.service_name
-  role     = "roles/run.invoker"
-  member   = "allUsers"
+############################################################################
+
+module "eventarc" {
+  source = "./modules/eventarc"
+
+  services_names        = ["processing"] # var.services_names
+  project_id            = var.project_id
+  region                = var.region
+  service_account_email = var.service_account_email
 }

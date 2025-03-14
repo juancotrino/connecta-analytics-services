@@ -26,6 +26,28 @@ def check_health():
     return {"message": "Service is healthy."}, 200
 
 
+@app.route("/get_from_storage", methods=["POST"])
+def get_from_storage():
+    """
+    Check the health of the service.
+    """
+    app.logger.info("Enters triggered endpoint")
+    event_data = request.json
+    app.logger.info("Event data:", event_data)
+    object_name = event_data.get("name", "")
+
+    # Check if the file is inside the correct folder
+    if not object_name.startswith("landingzone/"):
+        app.logger.info(
+            "The file was NOT loaded into the /landingzone folder:", event_data
+        )
+        return {"message": "Ignored, file not in target folder"}, 200
+
+    # Process the file upload
+    app.logger.debug(f"Processing file: {object_name}")
+    return {"message": "Event processed"}, 200
+
+
 @app.route("/statistical_processing", methods=["POST"])
 def statistical_processing():
     # Ensure a file was uploaded

@@ -1,14 +1,11 @@
-output "service_check_respondent_identity_url" {
-  value       = module.service_check_respondent_identity.service_url
-  description = "The URL on which the service 'service_check_respondent_identity' is available"
+output "cloud_run_service_urls" {
+  value = module.cloud_run.service_urls
 }
 
-output "service_processing_url" {
-  value       = module.service_processing.service_url
-  description = "The URL on which the service 'service_processing' is available"
+output "cloud_storage_buckets" {
+  value = module.cloud_storage.buckets
 }
 
-output "service_study_administrator_url" {
-  value       = module.service_study_administrator.service_url
-  description = "The URL on which the service 'study_administrator' is available"
+output "service_accounts" {
+  value = module.service_account.service_accounts
 }
