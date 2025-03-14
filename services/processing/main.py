@@ -31,7 +31,9 @@ def get_from_storage():
     """
     Check the health of the service.
     """
+    app.logger.info("Enters triggered endpoint")
     event_data = request.json
+    app.logger.info("Event data:", event_data)
     object_name = event_data.get("name", "")
 
     # Check if the file is inside the correct folder
