@@ -26,7 +26,7 @@ def check_health():
     return {"message": "Service is healthy."}, 200
 
 
-@app.route("/get_from_storage")
+@app.route("/get_from_storage", methods=["POST"])
 def get_from_storage():
     """
     Check the health of the service.
