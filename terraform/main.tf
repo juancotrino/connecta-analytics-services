@@ -89,7 +89,7 @@ module "service_account" {
       service_accounts = [split("@", var.service_account_email)[0]]
       project_roles = [
         "${var.project_id}=>roles/eventarc.eventReceiver",
-        "${var.project_id}=>roles/eventarc.runinvoker",
+        # "${var.project_id}=>roles/eventarc.runinvoker",
         "${var.project_id}=>roles/aiplatform.user",
         "${var.project_id}=>roles/bigquery.user",
         "${var.project_id}=>roles/datastore.user",
@@ -113,7 +113,7 @@ module "service_account" {
 module "eventarc" {
   source = "./modules/eventarc"
 
-  services_names        = var.services_names
+  services_names        = ["processing"] # var.services_names
   project_id            = var.project_id
   region                = var.region
   service_account_email = var.service_account_email
