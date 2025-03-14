@@ -36,3 +36,9 @@ variable "template_annotations" {
     "autoscaling.knative.dev/maxScale" = 5
   }
 }
+
+variable "services_names" {
+  description = "List of services names to create"
+  type        = list(string)
+  default     = ["processing", "coding"] # Default values, can be overridden
+}
