@@ -28,7 +28,7 @@ else:
 BUCKET_NAME = f"{GCP_PROJECT_ID}-{service_name}"
 
 
-def get_event_data(request: Request):
+def get_event_data(request: "Request"):
     return {header.split("-")[-1]: value for header, value in request.headers.items()}
 
 
@@ -40,7 +40,7 @@ def eventarc_file_downloader():
 
     def decorator(func):
         @functools.wraps(func)
-        async def wrapper(request: Request, *args, **kwargs):
+        async def wrapper(request: "Request", *args, **kwargs):
             try:
                 logger.info("Enters triggered endpoint")
                 event_data = get_event_data(request)
