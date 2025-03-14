@@ -38,6 +38,9 @@ def get_from_storage():
 
     # Check if the file is inside the correct folder
     if not object_name.startswith("landingzone/"):
+        app.logger.info(
+            "The file was NOT loaded into the /landingzone folder:", event_data
+        )
         return {"message": "Ignored, file not in target folder"}, 200
 
     # Process the file upload
