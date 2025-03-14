@@ -26,7 +26,9 @@ module "cloud_run" {
       memory = "256Mi"
       service_account_email = var.service_account_email
       template_annotations  = var.template_annotations
-      secrets = []
+      secrets = [
+        "GCP_PROJECT_ID",
+      ]
     },
     {
       name   = "service-processing"
