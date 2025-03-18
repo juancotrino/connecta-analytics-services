@@ -1,7 +1,6 @@
 from typing import TYPE_CHECKING
 import os
 from pathlib import Path
-import json
 from functools import wraps
 import logging
 
@@ -20,7 +19,7 @@ ENV = os.getenv("ENV", "local")
 GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")
 
 if ENV == "local":
-    parent_folder = Path(__file__).parent
+    parent_folder = Path(__file__).parent.name
     service_name = f"service-{parent_folder}"
 else:
     service_name = os.getenv("K_SERVICE")
@@ -28,8 +27,18 @@ else:
 BUCKET_NAME = f"{GCP_PROJECT_ID}-{service_name}"
 
 
-def get_event_data(request: "Request"):
-    return {header.split("-")[-1]: value for header, value in request.headers.items()}
+def get_file_name(request_headers: dict[str, str]):
+    event_data = {
+        header.split("-")[-1]: value for header, value in request_headers.items()
+    }
+    return "/".join(event_data.get("subject").split("/")[1:])
+
+
+def download_blob(file_name: str):
+    # Download file from Cloud Storage
+    bucket = storage_client.bucket(BUCKET_NAME)
+    blob = bucket.blob(file_name)
+    return blob.download_as_bytes()
 
 
 def eventarc_file_downloader(func):
@@ -39,24 +48,10 @@ def eventarc_file_downloader(func):
     """
 
     @wraps(func)
-    async def wrapper(request: "Request", *args, **kwargs):
-        logger.debug("Request:", request)
-        logger.debug("Request JSON:", request.json())
+    async def wrapper(request: "Request", file_name, file_content, *args, **kwargs):
         try:
-            logger.info("Enters triggered endpoint")
-            event_data = get_event_data(request)
-            logger.info("Event data:", event_data)
-            logger.info("Request json:", request.json())
-            logger.info("Request body:", request.body())
-            subject = event_data.get("subject")
-            logger.info("Subject:", subject)
-            # Parse the Eventarc request
-            body = await request.json()
-            event_data = body.get("message", {}).get("data", "{}")
-            event_data = json.loads(event_data)  # Decode the base64 message data
-
             # Extract file name
-            file_name = event_data.get("name")
+            file_name = get_file_name(request.headers)
             if not file_name:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -64,12 +59,10 @@ def eventarc_file_downloader(func):
                 )
 
             # Download file from Cloud Storage
-            bucket = storage_client.bucket(BUCKET_NAME)
-            blob = bucket.blob(file_name)
-            file_content = blob.download_as_bytes()
+            file_content = download_blob(file_name)
 
             # Call the actual processing function with the file content
-            return await func(file_name, file_content, *args, **kwargs)
+            return await func(request, file_name, file_content, *args, **kwargs)
 
         except Exception as e:
             raise HTTPException(
