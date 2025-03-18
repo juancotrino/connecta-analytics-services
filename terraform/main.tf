@@ -100,7 +100,6 @@ module "service_account" {
       service_accounts = [split("@", var.service_account_email)[0]]
       project_roles = [
         "${var.project_id}=>roles/eventarc.eventReceiver",
-        "${var.project_id}=>roles/eventarc.runinvoker",
         "${var.project_id}=>roles/aiplatform.user",
         "${var.project_id}=>roles/bigquery.user",
         "${var.project_id}=>roles/datastore.user",
@@ -116,6 +115,16 @@ module "service_account" {
       service_accounts = ["service-storage-proxy"]
       project_roles = ["${var.project_id}=>roles/storage.objectAdmin"]
     },
+  ]
+
+  resource_roles = [
+    {
+      service_account = var.service_account_email
+      role            = "roles/eventarc.runinvoker"
+      resources       = ["processing"] # var.services_names
+      type            = "cloud_run"
+      region          = var.region
+    }
   ]
 }
 
