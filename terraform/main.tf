@@ -116,16 +116,6 @@ module "service_account" {
       project_roles = ["${var.project_id}=>roles/storage.objectAdmin"]
     },
   ]
-
-  resource_roles = [
-    {
-      service_account = var.service_account_email
-      role            = "roles/eventarc.runinvoker"
-      resources       = ["processing"] # var.services_names
-      type            = "cloud_run"
-      region          = var.region
-    }
-  ]
 }
 
 ############################################################################

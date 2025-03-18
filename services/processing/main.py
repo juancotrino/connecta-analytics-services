@@ -4,7 +4,7 @@ import logging
 import tempfile
 
 import uvicorn
-from fastapi import FastAPI, status
+from fastapi import FastAPI, status, Request
 from fastapi.exceptions import HTTPException
 
 from logger import setup_logging
@@ -28,17 +28,22 @@ def check_health():
     return {"message": "Service is healthy."}
 
 
-@app.post("/get_from_storage", tags=["File processor"])
-@eventarc_file_downloader
-def get_from_storage(file_name: str, file_content: bytes):
-    # Check if the file is inside the correct folder
-    if not file_name.startswith("landingzone/"):
-        logger.info("The file was NOT loaded into the /landingzone folder:", file_name)
-        return {"message": "Ignored, file not in target folder"}
+@app.post("/get_from_storage")
+def root(request: Request):
+    logger.debug(request.headers)
 
-    # Process the file upload
-    logger.debug(f"Processing file: {file_name}")
-    return {"message": file_name}
+
+# @app.post("/get_from_storage", tags=["File processor"])
+# @eventarc_file_downloader
+# def get_from_storage(file_name: str, file_content: bytes):
+#     # Check if the file is inside the correct folder
+#     if not file_name.startswith("landingzone/"):
+#         logger.info("The file was NOT loaded into the /landingzone folder:", file_name)
+#         return {"message": "Ignored, file not in target folder"}
+
+#     # Process the file upload
+#     logger.debug(f"Processing file: {file_name}")
+#     return {"message": file_name}
 
 
 @app.post("/statistical_processing", tags=["Processing"])
