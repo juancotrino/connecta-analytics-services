@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 import os
 from pathlib import Path
 import json
-import functools
+from functools import wraps
 import logging
 
 from fastapi import HTTPException, status
@@ -38,8 +38,10 @@ def eventarc_file_downloader(func):
     and pass it to the endpoint function.
     """
 
-    @functools.wraps(func)
+    @wraps(func)
     async def wrapper(request: "Request", *args, **kwargs):
+        logger.debug("Request:", request)
+        logger.debug("Request JSON:", request.json())
         try:
             logger.info("Enters triggered endpoint")
             event_data = get_event_data(request)
