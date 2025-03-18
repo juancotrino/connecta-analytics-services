@@ -20,6 +20,17 @@ module "cloud_run" {
       ]
     },
     {
+      name   = "service-storage-proxy"
+      image  = "${var.region}-docker.pkg.dev/${var.project_id}/connecta-services/storage-proxy:latest"
+      cpu    = "1000m"
+      memory = "256Mi"
+      service_account_email = var.service_account_email
+      template_annotations  = var.template_annotations
+      secrets = [
+        "GCP_PROJECT_ID",
+      ]
+    },
+    {
       name   = "service-processing"
       image  = "${var.region}-docker.pkg.dev/${var.project_id}/connecta-services/processing:latest"
       cpu    = "1000m"
@@ -89,7 +100,6 @@ module "service_account" {
       service_accounts = [split("@", var.service_account_email)[0]]
       project_roles = [
         "${var.project_id}=>roles/eventarc.eventReceiver",
-        # "${var.project_id}=>roles/eventarc.runinvoker",
         "${var.project_id}=>roles/aiplatform.user",
         "${var.project_id}=>roles/bigquery.user",
         "${var.project_id}=>roles/datastore.user",
