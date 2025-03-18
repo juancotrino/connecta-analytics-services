@@ -30,7 +30,8 @@ def check_health():
 
 @app.post("/get_from_storage")
 def root(request: Request):
-    logger.debug(request.headers)
+    print(request)
+    logger.info(request.headers)
 
 
 # @app.post("/get_from_storage", tags=["File processor"])
