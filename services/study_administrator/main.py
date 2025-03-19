@@ -3,6 +3,7 @@ import logging
 
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from utils.api_versions import add_api_versions
 from app.core.logger import setup_logging
@@ -15,6 +16,15 @@ logger = logging.getLogger(__name__)
 
 # Initialize API
 app = FastAPI()
+
+origins = ["http://localhost:3000"]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/check_health", tags=["Health"])
