@@ -1,7 +1,10 @@
-from typing import get_args
+from typing import get_args, TYPE_CHECKING
 
 from app.core.big_query import BigQueryClient, bigquery, get_bigquery_type
 from app.models.study import Study
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 
 class StudyRepository:
@@ -66,8 +69,18 @@ class StudyRepository:
 
         return [Study(**dict(row)) for row in query_job]
 
-    def create_study(self, study: Study) -> None: ...
+    def create_study(self, study_df: "pd.DataFrame") -> None:
+        self.bq.load_data("study", study_df)
 
     def update_study(self, study: Study) -> None: ...
 
     def delete_study(self, study_id: int) -> None: ...
+
+    def _get_last_id_number(self) -> int:
+        last_study_number = self.bq.fetch_data(
+            f"""
+            SELECT MAX(study_id) AS study_id FROM `{self.bq.schema_id}.{self.bq.data_set}.study`
+            """
+        )["study_id"][0]
+
+        return last_study_number

@@ -9,7 +9,7 @@ class BusinessRepository:
         self._firebase = FirebaseAdmin(os.getenv("GCP_PROJECT_ID"))
         self.db = firestore.client()
 
-    def get_business_data(self) -> dict[str, dict]:
+    def get_business_data(self) -> dict[str, list[str]]:
         document = self.db.collection("settings").document("business_data").get()
 
         if document.exists:

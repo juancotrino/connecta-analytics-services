@@ -5,7 +5,7 @@ class BusinessService:
     def __init__(self, business_repository: BusinessRepository):
         self.business_repository = business_repository
 
-    def get_business_data(self) -> dict[str, dict]:
+    def get_business_data(self) -> dict[str, list[str]]:
         return self.business_repository.get_business_data()
 
 

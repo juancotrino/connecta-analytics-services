@@ -22,7 +22,16 @@ class Study(BaseModel):
 class StudyShow(Study): ...
 
 
-class StudyCreate(Study): ...
+class StudyCreate(BaseModel):
+    study_name: str
+    study_type: list[str]
+    description: str
+    country: list[str]
+    client: str
+    value: float
+    currency: str
+    supervisor: str
+    methodology: list[str]
 
 
 class StudyUpdate(Study): ...

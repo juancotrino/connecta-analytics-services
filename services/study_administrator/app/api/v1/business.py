@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 @router.get("/get_business_data", response_model=dict)
 def get_business_data(
     business_service: BusinessService = Depends(get_business_service),
-) -> dict[str, dict]:
+) -> dict[str, list[str]]:
     try:
         business_data = business_service.get_business_data()
     except Exception as e:
