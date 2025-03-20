@@ -72,9 +72,20 @@ class StudyRepository:
     def create_study(self, study_df: "pd.DataFrame") -> None:
         self.bq.load_data("study", study_df)
 
-    def update_study(self, study: Study) -> None: ...
+    def update_study(self, study_id: int, study_df: "pd.DataFrame") -> None:
+        self.delete_study(study_id)
+        self.create_study(study_df)
 
-    def delete_study(self, study_id: int) -> None: ...
+    def delete_study(self, study_id: int) -> None:
+        query = f"""
+            DELETE `{self.bq.schema_id}.{self.bq.data_set}.study`
+            WHERE study_id = @study_id
+        """
+        query_params = [
+            bigquery.ScalarQueryParameter("study_id", "INT64", study_id),
+        ]
+        job_config = bigquery.QueryJobConfig(query_parameters=query_params)
+        self.bq.delete_data(query, job_config)
 
     def _get_last_id_number(self) -> int:
         last_study_number = self.bq.fetch_data(

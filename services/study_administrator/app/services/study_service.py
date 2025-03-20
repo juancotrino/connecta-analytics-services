@@ -27,11 +27,37 @@ class StudyService:
     def get_all_studies(self) -> list[StudyShow]:
         return self.study_repository.get_studies()
 
-    def update_study(self, study: StudyUpdate):
-        self.study_repository.update_study(study)
+    def update_study(self, study_id: int, study: StudyUpdate):
+        study_df = self._build_update_study_entry(study_id, study)
+        self.study_repository.update_study(study_id, study_df)
 
     def delete_study(self, study_id: int):
         self.study_repository.delete_study(study_id)
+
+    def _build_update_study_entry(
+        self, study_id: int, study: StudyUpdate
+    ) -> pd.DataFrame:
+        combinations = list(
+            itertools.product(study.methodology, study.study_type, study.country)
+        )
+        current_timestamp = datetime.now(self.timezone)
+        study_entry = {
+            "study_id": [study_id] * len(combinations),
+            "study_name": [study.study_name] * len(combinations),
+            "methodology": [combination[0] for combination in combinations],
+            "study_type": [combination[1] for combination in combinations],
+            "description": [study.description] * len(combinations),
+            "country": [combination[2] for combination in combinations],
+            "client": [study.client] * len(combinations),
+            "value": [study.value] * len(combinations),
+            "currency": [study.currency] * len(combinations),
+            "supervisor": [study.supervisor] * len(combinations),
+            "status": [study.status] * len(combinations),
+            "source": [study.source] * len(combinations),
+            "creation_date": [study.creation_date] * len(combinations),
+            "last_update_date": [current_timestamp] * len(combinations),
+        }
+        return pd.DataFrame(study_entry)
 
     def _build_study_entry(self, study: StudyCreate) -> pd.DataFrame:
         combinations = list(

@@ -3,7 +3,7 @@ import logging
 from fastapi import APIRouter, Query, HTTPException, Depends
 from fastapi import status as http_status
 
-from app.models.study import StudyShow, StudyCreate
+from app.models.study import StudyShow, StudyCreate, StudyUpdate
 from app.services.study_service import StudyService, get_study_service
 
 
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 def query_studies(
     limit: int = 50,
     offset: int = 0,
-    study_id: list[str] | None = Query(None),
+    study_id: list[int] | None = Query(None),
     status: list[str] | None = Query(None),
     country: list[str] | None = Query(None),
     client: list[str] | None = Query(None),
@@ -64,4 +64,25 @@ def create(
         raise HTTPException(
             status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=message
         )
-    return {"message": f"Study created with ID: {study_id}"}
+    return {"message": f"Study successfully created with ID: {study_id}"}
+
+
+@router.patch(
+    "/update/{study_id}",
+    response_model=dict[str, str],
+    status_code=http_status.HTTP_200_OK,
+)
+def update(
+    study_id: int,
+    study: StudyUpdate,
+    study_service: StudyService = Depends(get_study_service),
+) -> dict[str, str]:
+    try:
+        study_service.update_study(study_id, study)
+    except Exception as e:
+        message = f"Failed to fetch studies: {str(e)}"
+        logger.error(message)
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=message
+        )
+    return {"message": f"Study ID: {study_id}, successfully updated"}

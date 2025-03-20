@@ -57,5 +57,5 @@ class BigQueryClient:
         return self.client.query(query).to_dataframe()
 
     @handle_rate_limit
-    def delete_data(self, query: str):
-        return self.client.query(query)
+    def delete_data(self, query: str, job_config: bigquery.QueryJobConfig):
+        return self.client.query(query, job_config=job_config)

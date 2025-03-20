@@ -34,4 +34,16 @@ class StudyCreate(BaseModel):
     methodology: list[str]
 
 
-class StudyUpdate(Study): ...
+class StudyUpdate(BaseModel):
+    study_name: str
+    study_type: list[str]
+    description: str
+    country: list[str]
+    client: str
+    value: float
+    currency: str
+    creation_date: datetime
+    supervisor: str
+    status: str
+    source: str
+    methodology: list[str]
