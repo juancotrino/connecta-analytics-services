@@ -49,7 +49,13 @@ module "cloud_run" {
       service_account_email = var.service_account_email
       template_annotations  = var.template_annotations
       secrets = [
-        "GCP_PROJECT_ID"
+        "GCP_PROJECT_ID",
+        "SITE_URL",
+        "CLIENT_ID",
+        "CLIENT_SECRET",
+        "MS_TEAMS_WEBHOOK_STUDY_STATUS_UPDATE",
+        "MS_TEAMS_WEBHOOK_FIELD_DELIVERY_UPDATE",
+        "MS_TEAMS_WEBHOOK_QUESTIONNAIRE_UPDATE",
       ]
     }
   ]
