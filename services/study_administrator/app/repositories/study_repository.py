@@ -12,6 +12,7 @@ class StudyRepository:
         self.bq = BigQueryClient("business_data")
         self.ALLOWED_FILTERS = [
             "study_id",
+            "study_name",
             "status",
             "country",
             "client",
@@ -19,7 +20,17 @@ class StudyRepository:
             "study_type",
         ]
 
-    def get_study(self, study_id: int) -> Study: ...
+    def get_study(self, study_id: int) -> Study:
+        query = f"""
+            SELECT *
+            FROM `{self.bq.schema_id}.{self.bq.data_set}.study`
+            WHERE study_id = @study_id
+        """
+        query_params = [bigquery.ScalarQueryParameter("study_id", "INT64", study_id)]
+        job_config = bigquery.QueryJobConfig(query_parameters=query_params)
+        query_job = self.bq.client.query(query, job_config=job_config)
+
+        return Study(**dict(query_job))
 
     def get_studies(self) -> list[Study]: ...
 
@@ -30,6 +41,8 @@ class StudyRepository:
         for _filter in self.ALLOWED_FILTERS:  # Only use predefined filters
             if _filter in kwargs and kwargs[_filter]:
                 param_values = kwargs[_filter]
+                if not isinstance(param_values, list):
+                    param_values = [param_values]
 
                 # Get the expected Python type from the Pydantic model
                 py_type = get_args(Study.model_fields[_filter].annotation)[0]

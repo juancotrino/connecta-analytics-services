@@ -1,10 +1,12 @@
 import logging
 
-from fastapi import APIRouter, Query, HTTPException, Depends
+from fastapi import APIRouter, Query, HTTPException, Depends, UploadFile, File
 from fastapi import status as http_status
 
 from app.models.study import StudyShow, StudyCreate, StudyUpdate
 from app.services.study_service import StudyService, get_study_service
+
+from app.dependencies.authorization import get_user_roles
 
 
 router = APIRouter(
@@ -86,3 +88,33 @@ def update(
             status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=message
         )
     return {"message": f"Study ID: {study_id}, successfully updated"}
+
+
+@router.post(
+    "/upload_file/{study_id}",
+    response_model=dict[str, str],
+    status_code=http_status.HTTP_200_OK,
+)
+def upload(
+    study_id: int,
+    country: str,
+    study_name: str,
+    file_name: str,
+    study_service: StudyService = Depends(get_study_service),
+    user_roles: list[str] = Depends(get_user_roles),
+    file: UploadFile = File(...),
+) -> dict[str, str]:
+    try:
+        study_service.upload_file(
+            study_id, country, study_name, file_name, file, user_roles
+        )
+    except Exception as e:
+        message = (
+            f"Failed to upload file to study '{study_id}', country '{country}', "
+            f"study name '{study_name}': {str(e)}"
+        )
+        logger.error(message)
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=message
+        )
+    return {"message": f"File uploaded successfully to Study ID: {study_id}"}
