@@ -3,5 +3,6 @@ fastapi==0.115.6
 firebase-admin==6.5.0
 google-cloud-bigquery==3.27.0
 google-cloud-bigquery-storage==2.27.0
+Office365-REST-Python-Client==2.5.10
 pandas==2.2.3
 uvicorn==0.34.0
