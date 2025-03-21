@@ -36,7 +36,7 @@ class StudyRepository:
 
     def get_total_studies(self) -> int:
         query = f"""
-            SELECT COUNT(DISTINCT study_id) AS total_studies
+            SELECT COUNT(study_id) AS total_studies
             FROM `{self.bq.schema_id}.{self.bq.data_set}.study`
         """
         return self.bq.fetch_data(query)["total_studies"][0]
