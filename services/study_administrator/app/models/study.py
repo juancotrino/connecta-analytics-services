@@ -19,6 +19,11 @@ class Study(BaseModel):
     methodology: str | None = None
 
 
+class StudyShowTotal(BaseModel):
+    total_studies: int
+    studies: list[Study]
+
+
 class StudyShow(Study): ...
 
 

@@ -32,6 +32,9 @@ class StudyService:
     def get_study(self, study_id: int) -> StudyShow:
         return self.study_repository.get_study(study_id)
 
+    def get_total_studies(self) -> int:
+        return self.study_repository.get_total_studies()
+
     def query_studies(self, limit: int, offset: int, **kwargs) -> list[StudyShow]:
         return self.study_repository.query_studies(limit, offset, **kwargs)
 

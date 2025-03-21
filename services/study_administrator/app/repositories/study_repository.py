@@ -34,6 +34,13 @@ class StudyRepository:
 
     def get_studies(self) -> list[Study]: ...
 
+    def get_total_studies(self) -> int:
+        query = f"""
+            SELECT COUNT(DISTINCT study_id) AS total_studies
+            FROM `{self.bq.schema_id}.{self.bq.data_set}.study`
+        """
+        return self.bq.fetch_data(query)["total_studies"][0]
+
     def query_studies(self, limit: int, offset: int, **kwargs) -> list[Study]:
         query_params = []
         conditions = []

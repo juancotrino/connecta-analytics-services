@@ -3,7 +3,7 @@ import logging
 from fastapi import APIRouter, Query, HTTPException, Depends, UploadFile, File
 from fastapi import status as http_status
 
-from app.models.study import StudyShow, StudyCreate, StudyUpdate
+from app.models.study import StudyShowTotal, StudyCreate, StudyUpdate
 from app.services.study_service import StudyService, get_study_service
 
 from app.dependencies.authorization import get_user_roles
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 @router.get(
-    "/query", response_model=list[StudyShow], status_code=http_status.HTTP_201_CREATED
+    "/query", response_model=StudyShowTotal, status_code=http_status.HTTP_201_CREATED
 )
 def query_studies(
     limit: int = 50,
@@ -30,7 +30,7 @@ def query_studies(
     methodology: list[str] | None = Query(None),
     study_type: list[str] | None = Query(None),
     study_service: StudyService = Depends(get_study_service),
-) -> list[StudyShow]:
+) -> StudyShowTotal:
     kwargs = {
         "study_id": study_id,
         "status": status,
@@ -42,13 +42,14 @@ def query_studies(
 
     try:
         studies = study_service.query_studies(limit, offset, **kwargs)
+        total_studies = study_service.get_total_studies()
     except Exception as e:
         message = f"Failed to fetch studies: {str(e)}"
         logger.error(message)
         raise HTTPException(
             status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=message
         )
-    return studies
+    return {"total_studies": total_studies, "studies": studies}
 
 
 @router.post(
