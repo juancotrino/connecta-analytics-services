@@ -1,7 +1,7 @@
 from typing import get_args, TYPE_CHECKING
 
 from app.core.big_query import BigQueryClient, bigquery, get_bigquery_type
-from app.models.study import Study
+from app.models.study import StudyShow, StudyShowTotal
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -20,7 +20,7 @@ class StudyRepository:
             "study_type",
         ]
 
-    def get_study(self, study_id: int) -> Study:
+    def get_study(self, study_id: int) -> StudyShow:
         query = f"""
             SELECT *
             FROM `{self.bq.schema_id}.{self.bq.data_set}.study`
@@ -30,9 +30,9 @@ class StudyRepository:
         job_config = bigquery.QueryJobConfig(query_parameters=query_params)
         query_job = self.bq.client.query(query, job_config=job_config)
 
-        return Study(**dict(query_job))
+        return StudyShow(**dict(query_job))
 
-    def get_studies(self) -> list[Study]: ...
+    def get_studies(self) -> list[StudyShow]: ...
 
     def get_total_studies(self) -> int:
         query = f"""
@@ -41,7 +41,7 @@ class StudyRepository:
         """
         return self.bq.fetch_data(query)["total_studies"][0]
 
-    def query_studies(self, limit: int, offset: int, **kwargs) -> list[Study]:
+    def query_studies(self, limit: int, offset: int, **kwargs) -> list[StudyShowTotal]:
         query_params = []
         conditions = []
 
@@ -52,7 +52,7 @@ class StudyRepository:
                     param_values = [param_values]
 
                 # Get the expected Python type from the Pydantic model
-                py_type = get_args(Study.model_fields[_filter].annotation)[0]
+                py_type = get_args(StudyShow.model_fields[_filter].annotation)[0]
                 bq_type = get_bigquery_type(py_type)
 
                 # Handle multiple values with IN clause
@@ -87,7 +87,7 @@ class StudyRepository:
         job_config = bigquery.QueryJobConfig(query_parameters=query_params)
         query_job = self.bq.client.query(query, job_config=job_config)
 
-        return [Study(**dict(row)) for row in query_job]
+        return [StudyShow(**dict(row)) for row in query_job]
 
     def create_study(self, study_df: "pd.DataFrame") -> None:
         self.bq.load_data("study", study_df)

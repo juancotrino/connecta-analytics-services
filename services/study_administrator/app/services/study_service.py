@@ -23,9 +23,10 @@ class StudyService:
         self.timezone = timezone("America/Bogota")
         self.countries_iso_2_code = self.business_repository.get_countries_iso_2_code()
         self.study_root_folder_url = "https://connectasas.sharepoint.com/sites/connecta-ciencia_de_datos/Documentos%20compartidos/estudios"
+        self.initial_status = "Propuesta"
 
     def create_study(self, study: StudyCreate) -> int:
-        study_df = self._build_study_entry(study)
+        study_df = self._build_study_create_entry(study)
         self.study_repository.create_study(study_df)
         return study_df["study_id"].unique()[0]
 
@@ -42,25 +43,36 @@ class StudyService:
         return self.study_repository.get_studies()
 
     def update_study(self, study_id: int, study: StudyUpdate):
-        if study.status == "En ejecución":
-            current_study_data = self.query_studies(50, 0, study_id=study_id)
-            if current_study_data and current_study_data[0].status != "En ejecución":
-                countries_folders = {}
-                for country in study.country:
+        countries_folders = {}
+        for country in study.countries:
+            if country.status == "En ejecución":
+                current_study_data = self.query_studies(
+                    50, 0, study_id=study_id, country=country.country
+                )
+                if (
+                    current_study_data
+                    and current_study_data[0].status != "En ejecución"
+                ):
                     country_code = self.countries_iso_2_code[country].lower()
-                    id_study_name = f"{study_id}_{country_code}_{study.study_name.replace(' ', '_').lower()}"
+                    id_study_name = (
+                        f"{study_id}_{country_code}_"
+                        f"{study.study_name.replace(' ', '_').lower()}"
+                    )
                     try:
                         self.business_repository.create_folder_structure(
-                            id_study_name, self.business_repository.sharepoint_base_path
+                            id_study_name,
+                            self.business_repository.sharepoint_base_path,
                         )
                         folder_url = f"{self.study_root_folder_url}/{id_study_name}"
                         countries_folders[country] = folder_url
                         logger.info(
-                            f"Study root folder created successfully for country '{country}'. URL: {folder_url}"
+                            f"Study root folder created successfully for "
+                            f"country '{country}'. URL: {folder_url}"
                         )
                     except Exception as e:
                         logger.error(
-                            f"Failed to create study root folder for country '{country}': {str(e)}"
+                            f"Failed to create study root folder for country "
+                            f"'{country}': {str(e)}"
                         )
 
                 try:
@@ -139,56 +151,49 @@ class StudyService:
             f"{study_id}_{country_code.lower()}_{study_name.replace(' ', '_').lower()}"
         )
 
+    def _transform_list_data(self, data: list[dict]) -> list[dict]:
+        for element in data:
+            for attribute, value in element.items():
+                if isinstance(value, list):
+                    element[attribute] = ",".join(element[attribute])
+        return data
+
     def _build_update_study_entry(
         self, study_id: int, study: StudyUpdate
     ) -> pd.DataFrame:
-        combinations = list(
-            itertools.product(study.methodology, study.study_type, study.country)
-        )
         current_timestamp = datetime.now(self.timezone)
-        study_entry = {
-            "study_id": [study_id] * len(combinations),
-            "study_name": [study.study_name] * len(combinations),
-            "methodology": [combination[0] for combination in combinations],
-            "study_type": [combination[1] for combination in combinations],
-            "description": [study.description] * len(combinations),
-            "country": [combination[2] for combination in combinations],
-            "client": [study.client] * len(combinations),
-            "value": [study.value] * len(combinations),
-            "currency": [study.currency] * len(combinations),
-            "supervisor": [study.supervisor] * len(combinations),
-            "status": [study.status] * len(combinations),
-            "source": [study.source] * len(combinations),
-            "creation_date": [study.creation_date] * len(combinations),
-            "last_update_date": [current_timestamp] * len(combinations),
-        }
-        return pd.DataFrame(study_entry)
 
-    def _build_study_entry(self, study: StudyCreate) -> pd.DataFrame:
-        combinations = list(
-            itertools.product(study.methodology, study.study_type, study.country)
-        )
-        study_id = self.study_repository._get_last_id_number() + 1
+        countries = [country.model_dump() for country in study.countries]
+        countries = self._transform_list_data(countries)
+
+        study_df = pd.DataFrame(countries)
+
+        study_df["study_id"] = study_id
+        study_df["study_name"] = study.study_name
+        study_df["client"] = study.client
+        study_df["source"] = study.source
+        study_df["creation_date"] = study.creation_date
+        study_df["last_update_date"] = current_timestamp
+
+        return study_df
+
+    def _build_study_create_entry(self, study: StudyCreate) -> pd.DataFrame:
         current_timestamp = datetime.now(self.timezone)
-        initial_status = "Propuesta"
-        source = "app"
-        study_entry = {
-            "study_id": [study_id] * len(combinations),
-            "study_name": [study.study_name] * len(combinations),
-            "methodology": [combination[0] for combination in combinations],
-            "study_type": [combination[1] for combination in combinations],
-            "description": [study.description] * len(combinations),
-            "country": [combination[2] for combination in combinations],
-            "client": [study.client] * len(combinations),
-            "value": [study.value] * len(combinations),
-            "currency": [study.currency] * len(combinations),
-            "supervisor": [study.supervisor] * len(combinations),
-            "status": [initial_status] * len(combinations),
-            "source": [source] * len(combinations),
-            "creation_date": [current_timestamp] * len(combinations),
-            "last_update_date": [current_timestamp] * len(combinations),
-        }
-        return pd.DataFrame(study_entry)
+
+        countries = [country.model_dump() for country in study.countries]
+        countries = self._transform_list_data(countries)
+
+        study_df = pd.DataFrame(countries)
+
+        study_df["study_id"] = self.study_repository._get_last_id_number() + 1
+        study_df["study_name"] = study.study_name
+        study_df["client"] = study.client
+        study_df["source"] = study.source
+        study_df["creation_date"] = current_timestamp
+        study_df["last_update_date"] = current_timestamp
+        study_df["status"] = self.initial_status
+
+        return study_df
 
 
 def get_study_service():
