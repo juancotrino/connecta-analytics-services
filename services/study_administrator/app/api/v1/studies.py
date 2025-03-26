@@ -1,3 +1,4 @@
+from typing import TYPE_CHECKING
 import logging
 
 from fastapi import APIRouter, Query, HTTPException, Depends, UploadFile, File
@@ -6,8 +7,11 @@ from fastapi import status as http_status
 from app.models.study import StudyShowTotal, StudyCreate, StudyUpdate
 from app.services.study_service import StudyService, get_study_service
 
-from app.dependencies.authorization import get_user_roles
+from app.dependencies.authentication import get_user
+from app.dependencies.authorization import authorize
 
+if TYPE_CHECKING:
+    from app.models.user import User
 
 router = APIRouter(
     prefix="/studies",
@@ -18,7 +22,10 @@ logger = logging.getLogger(__name__)
 
 
 @router.get(
-    "/query", response_model=StudyShowTotal, status_code=http_status.HTTP_201_CREATED
+    "/query",
+    response_model=StudyShowTotal,
+    status_code=http_status.HTTP_201_CREATED,
+    dependencies=[Depends(authorize)],
 )
 def query_studies(
     limit: int = 50,
@@ -53,7 +60,10 @@ def query_studies(
 
 
 @router.post(
-    "/create", response_model=dict[str, str], status_code=http_status.HTTP_201_CREATED
+    "/create",
+    response_model=dict[str, str],
+    status_code=http_status.HTTP_201_CREATED,
+    dependencies=[Depends(authorize)],
 )
 def create(
     study: StudyCreate,
@@ -74,14 +84,16 @@ def create(
     "/update/{study_id}",
     response_model=dict[str, str],
     status_code=http_status.HTTP_200_OK,
+    dependencies=[Depends(authorize)],
 )
 def update(
     study_id: int,
     study: StudyUpdate,
     study_service: StudyService = Depends(get_study_service),
+    user: "User" = Depends(get_user),
 ) -> dict[str, str]:
     try:
-        study_service.update_study(study_id, study)
+        study_service.update_study(study_id, study, user)
     except Exception as e:
         message = f"Failed to fetch studies: {str(e)}"
         logger.error(message)
@@ -95,24 +107,25 @@ def update(
     "/upload_file/{study_id}",
     response_model=dict[str, str],
     status_code=http_status.HTTP_200_OK,
+    dependencies=[Depends(authorize)],
 )
 def upload(
     study_id: int,
     country: str,
     study_name: str,
     file_name: str,
-    study_service: StudyService = Depends(get_study_service),
-    user_roles: list[str] = Depends(get_user_roles),
     file: UploadFile = File(...),
+    study_service: StudyService = Depends(get_study_service),
+    user: "User" = Depends(get_user),
 ) -> dict[str, str]:
     try:
         study_service.upload_file(
-            study_id, country, study_name, file_name, file, user_roles
+            study_id, country, study_name, file_name, file, user.roles
         )
     except Exception as e:
         message = (
             f"Failed to upload file to study '{study_id}', country '{country}', "
-            f"study name '{study_name}': {str(e)}"
+            f"study name '{study_name}'. Error: {str(e)}"
         )
         logger.error(message)
         raise HTTPException(

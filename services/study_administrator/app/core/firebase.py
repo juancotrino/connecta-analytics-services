@@ -1,3 +1,5 @@
+import os
+
 import firebase_admin
 
 
@@ -16,3 +18,6 @@ class FirebaseAdmin:
         ):  # Ensure Firebase is initialized only once per project
             app_options = {"projectId": project_id}
             firebase_admin.initialize_app(options=app_options)
+
+
+_firebase = FirebaseAdmin(os.getenv("GCP_PROJECT_ID"))

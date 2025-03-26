@@ -61,6 +61,19 @@ class BusinessRepository:
             business_data = document.to_dict()
             return business_data
 
+    def get_authorized_roles_by_endpoint(self, endpoint_path: str):
+        document = (
+            self.db.collection("cloudrun_services")
+            .document("study_administrator")
+            .get()
+        )
+
+        if document.exists:
+            endpoints = document.to_dict()["endpoints"]
+            if endpoint_path not in endpoints:
+                raise KeyError(f"No roles for endpoint '{endpoint_path}' are set.")
+            return endpoints[endpoint_path]["authorized_roles"]
+
     def get_upload_files(self) -> dict[str, list[str]]:
         document = self.db.collection("settings").document("upload_files").get()
 
@@ -142,7 +155,7 @@ class BusinessRepository:
         container = Container(style=ContainerStyle.DEFAULT)
 
         container.add_text_block(
-            f"Study **{study_info['study_id']} {study_info['study_name']}** changed its status to **{study_info['status']}** with these specifications:",
+            f"Study **{study_info['study_id']} {study_info['study_name']}** for country **{study_info['country']}** changed its status to **{study_info['status']}** with these specifications:",
             size=TextSize.DEFAULT,
             weight=TextWeight.DEFAULT,
             color="default",
@@ -150,18 +163,19 @@ class BusinessRepository:
 
         factset = FactSet()
         for k, v in study_info.items():
-            if k not in ("study_folder", "status"):
+            if k not in ("study_country_folder", "source"):
+                if isinstance(v, list):
+                    v = ", ".join(v)
                 factset.add_facts((f"**{k.replace('_', ' ').capitalize()}**:", v))
 
         container.add_fact_set(factset)
 
         card.add_container(container)
 
-        for country, study_folder in study_info["study_folder"].items():
-            card.add_url_button(
-                f"{country} study proposal folder",
-                f"{study_folder}/consultoria/propuestas",
-            )
+        card.add_url_button(
+            f"{study_info['country']} study proposal folder",
+            f"{study_info['study_country_folder']}/consultoria/propuestas",
+        )
 
         webhook.add_cards(card)
         webhook.send()

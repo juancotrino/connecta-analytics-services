@@ -1,17 +1,20 @@
 from typing import TYPE_CHECKING
-import itertools
 from pytz import timezone
 from datetime import datetime
 import logging
 
 import pandas as pd
 
+from fastapi import status
+from fastapi.exceptions import HTTPException
+
 from app.repositories.study_repository import StudyRepository
 from app.repositories.business_repository import BusinessRepository
-from app.models.study import StudyShow, StudyCreate, StudyUpdate
+from app.models.study import StudyShow, StudyCreate, StudyUpdate, StudyCountryUpdate
 
 if TYPE_CHECKING:
     from fastapi import UploadFile
+    from app.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -42,9 +45,21 @@ class StudyService:
     def get_all_studies(self) -> list[StudyShow]:
         return self.study_repository.get_studies()
 
-    def update_study(self, study_id: int, study: StudyUpdate):
-        countries_folders = {}
+    def update_study(self, study_id: int, study: StudyUpdate, user: "User"):
+        study_dict = study.model_dump(exclude={"creation_date"})
+        study_dict["study_id"] = study_id
+
+        study_country_folders = {}
+
         for country in study.countries:
+            if user.name != country.consultant:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=(
+                        f"Cannot update study '{study.study_name}' for country "
+                        f"'{country.country}'. You are not the study's supervisor."
+                    ),
+                )
             if country.status == "En ejecución":
                 current_study_data = self.query_studies(
                     50, 0, study_id=study_id, country=country.country
@@ -53,52 +68,55 @@ class StudyService:
                     current_study_data
                     and current_study_data[0].status != "En ejecución"
                 ):
-                    country_code = self.countries_iso_2_code[country].lower()
+                    country_code = self.countries_iso_2_code[country.country].lower()
                     id_study_name = (
                         f"{study_id}_{country_code}_"
                         f"{study.study_name.replace(' ', '_').lower()}"
                     )
+                    folder_url = f"{self.study_root_folder_url}/{id_study_name}"
+                    study_country_folders[country.country] = folder_url
                     try:
                         self.business_repository.create_folder_structure(
                             id_study_name,
                             self.business_repository.sharepoint_base_path,
                         )
-                        folder_url = f"{self.study_root_folder_url}/{id_study_name}"
-                        countries_folders[country] = folder_url
                         logger.info(
                             f"Study root folder created successfully for "
-                            f"country '{country}'. URL: {folder_url}"
+                            f"country '{country.country}'. URL: {folder_url}"
                         )
                     except Exception as e:
                         logger.error(
                             f"Failed to create study root folder for country "
-                            f"'{country}': {str(e)}"
+                            f"'{country.country}'. Error: {str(e)}"
                         )
 
-                try:
-                    self.business_repository.msteams_card_study_status_update(
-                        {
-                            "study_id": study_id,
-                            "study_name": study.study_name,
-                            "methodology": ", ".join(study.methodology),
-                            "study_type": ", ".join(study.study_type),
-                            "description": study.description,
-                            "country": ", ".join(study.country),
-                            "client": study.client,
-                            "value": f"{'{:,}'.format(study.value).replace(',', '.')} {study.currency}",
-                            "consultant": study.supervisor,
-                            "status": study.status,
-                            "study_folder": countries_folders,
-                        }
-                    )
-                except Exception as e:
-                    logger.error(f"Failed to send Microsoft Teams card: {str(e)}")
+            self._send_msteams_card(study_dict, country, study_country_folders)
 
         study_df = self._build_update_study_entry(study_id, study)
         self.study_repository.update_study(study_id, study_df)
 
     def delete_study(self, study_id: int):
         self.study_repository.delete_study(study_id)
+
+    def _send_msteams_card(
+        self, study_dict: dict, country: StudyCountryUpdate, study_country_folders: dict
+    ):
+        try:
+            if country.status != self.initial_status:
+                study_general_info = {
+                    k: v for k, v in study_dict.items() if not isinstance(v, list)
+                }
+                study_country = study_general_info | country.model_dump()
+                study_country["study_country_folder"] = study_country_folders[
+                    country.country
+                ]
+                self.business_repository.msteams_card_study_status_update(study_country)
+                logger.info(
+                    "Successfully sent Microsoft Teams card for study_id "
+                    f"'{study_dict['study_id']}', country '{country.country}'"
+                )
+        except Exception as e:
+            logger.error(f"Failed to send Microsoft Teams card. Error: {str(e)}")
 
     def _check_study_exists(self, **kwargs: dict) -> bool:
         return self.query_studies(1, 0, **kwargs) != []
@@ -116,7 +134,9 @@ class StudyService:
             study_id=study_id, country=country, study_name=study_name
         )
         if not study_exists:
-            raise ValueError("Study does not exist")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Study does not exist."
+            )
 
         upload_files = self.business_repository.get_upload_files()
         allowed_upload_files = self.business_repository.get_allowed_upload_files(
