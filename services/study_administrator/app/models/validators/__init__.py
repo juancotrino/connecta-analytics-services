@@ -1,5 +1,8 @@
-def ensure_list(value: str) -> list[str]:
-    if value and not isinstance(value, list):
-        return value.split(",")
+def ensure_list(value: str) -> list[str] | None:
+    if value:
+        if not isinstance(value, list):
+            return value.split(",")
+        else:
+            return value
     else:
-        return value
+        return None
