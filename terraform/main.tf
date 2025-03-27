@@ -56,6 +56,8 @@ module "cloud_run" {
         "MS_TEAMS_WEBHOOK_STUDY_STATUS_UPDATE",
         "MS_TEAMS_WEBHOOK_FIELD_DELIVERY_UPDATE",
         "MS_TEAMS_WEBHOOK_QUESTIONNAIRE_UPDATE",
+        "COOKIE_KEY",
+        "ENCODE_ALGORITHM"
       ]
     }
   ]
