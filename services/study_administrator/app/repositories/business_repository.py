@@ -61,6 +61,17 @@ class BusinessRepository:
             business_data = document.to_dict()
             return business_data
 
+    def get_authorized_columns(self) -> dict[str, list[str]]:
+        document = (
+            self.db.collection("cloudrun_services")
+            .document("study_administrator")
+            .get()
+        )
+
+        if document.exists:
+            query_endpoint = document.to_dict()["endpoints"]["query"]
+            return query_endpoint["authorized_columns"]
+
     def get_authorized_roles_by_endpoint(self, endpoint_path: str):
         document = (
             self.db.collection("cloudrun_services")

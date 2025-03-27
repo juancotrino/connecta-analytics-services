@@ -37,6 +37,7 @@ def query_studies(
     methodology: list[str] | None = Query(None),
     study_type: list[str] | None = Query(None),
     study_service: StudyService = Depends(get_study_service),
+    user: "User" = Depends(get_user),
 ) -> StudyShowTotal:
     kwargs = {
         "study_id": study_id,
@@ -48,7 +49,7 @@ def query_studies(
     }
 
     try:
-        studies = study_service.query_studies(limit, offset, **kwargs)
+        studies = study_service.query_filtered_studies(user, limit, offset, **kwargs)
         total_studies = study_service.get_total_studies()
     except Exception as e:
         message = f"Failed to fetch studies: {str(e)}"

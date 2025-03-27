@@ -1,6 +1,6 @@
 from typing_extensions import Annotated
 from datetime import datetime
-from pydantic import BaseModel, BeforeValidator
+from pydantic import BaseModel, BeforeValidator, ConfigDict
 from app.models.validators import ensure_list
 
 
@@ -12,6 +12,9 @@ class StudyCountry(BaseModel):
     currency: str | None = None
     consultant: str | None = None
     description: str | None = None
+    number_of_surveys: int | None = None
+    number_of_routes: int | None = None
+    number_of_visits: int | None = None
 
 
 class StudyCountryCreate(BaseModel):
@@ -22,6 +25,9 @@ class StudyCountryCreate(BaseModel):
     currency: str | None = None
     consultant: str | None = None
     description: str | None = None
+    number_of_surveys: int | None = None
+    number_of_routes: int | None = None
+    number_of_visits: int | None = None
 
 
 class StudyCountryUpdate(BaseModel):
@@ -33,6 +39,11 @@ class StudyCountryUpdate(BaseModel):
     consultant: str | None = None
     description: str | None = None
     status: str | None = None
+    number_of_surveys: int | None = None
+    number_of_routes: int | None = None
+    number_of_visits: int | None = None
+
+    model_config = ConfigDict(extra="allow")
 
 
 class Study(BaseModel):
@@ -54,6 +65,9 @@ class StudyShow(BaseModel):
     value: float | None = None
     currency: str | None = None
     consultant: str | None = None
+    number_of_surveys: int | None = None
+    number_of_routes: int | None = None
+    number_of_visits: int | None = None
     status: str | None = None
     source: str | None = None
     creation_date: datetime | None = None

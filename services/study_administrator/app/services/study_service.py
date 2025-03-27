@@ -10,7 +10,12 @@ from fastapi.exceptions import HTTPException
 
 from app.repositories.study_repository import StudyRepository
 from app.repositories.business_repository import BusinessRepository
-from app.models.study import StudyShow, StudyCreate, StudyUpdate, StudyCountryUpdate
+from app.models.study import (
+    StudyShow,
+    StudyCreate,
+    StudyUpdate,
+    StudyCountryUpdate,
+)
 
 if TYPE_CHECKING:
     from fastapi import UploadFile
@@ -39,8 +44,39 @@ class StudyService:
     def get_total_studies(self) -> int:
         return self.study_repository.get_total_studies()
 
+    def _get_roles_authorized_columns(
+        self, authorized_columns: dict[str, list[str]], user_roles: list[str]
+    ) -> list[str]:
+        return [
+            column
+            for column, roles in authorized_columns.items()
+            if any(role in roles for role in user_roles)
+        ]
+
+    def _filter_columns_by_roles(
+        self, studies: list[StudyShow], roles_authorized_columns: list[str]
+    ):
+        for study in studies:
+            all_attributes = set(study.model_fields.keys())
+            for column in all_attributes - set(roles_authorized_columns):
+                delattr(study, column)
+        return studies
+
     def query_studies(self, limit: int, offset: int, **kwargs) -> list[StudyShow]:
         return self.study_repository.query_studies(limit, offset, **kwargs)
+
+    def query_filtered_studies(
+        self, user: "User", limit: int, offset: int, **kwargs
+    ) -> list[StudyShow]:
+        studies = self.study_repository.query_studies(limit, offset, **kwargs)
+        authorized_columns = self.business_repository.get_authorized_columns()
+        roles_authorized_columns = self._get_roles_authorized_columns(
+            authorized_columns, user.roles
+        )
+        studies_filtered = self._filter_columns_by_roles(
+            studies, roles_authorized_columns
+        )
+        return studies_filtered
 
     def get_all_studies(self) -> list[StudyShow]:
         return self.study_repository.get_studies()
@@ -52,6 +88,10 @@ class StudyService:
         study_country_folders = {}
 
         for country in study.countries:
+            country.last_update_date = datetime.now(self.timezone)
+            # TODO: Create in firestore a document for delegates of each user.
+            # Use uuid of the delegate. Create 'delegates' list in users colection
+            # for each user
             if user.name != country.consultant:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
@@ -181,8 +221,6 @@ class StudyService:
     def _build_update_study_entry(
         self, study_id: int, study: StudyUpdate
     ) -> pd.DataFrame:
-        current_timestamp = datetime.now(self.timezone)
-
         countries = [country.model_dump() for country in study.countries]
         countries = self._transform_list_data(countries)
 
@@ -193,7 +231,6 @@ class StudyService:
         study_df["client"] = study.client
         study_df["source"] = study.source
         study_df["creation_date"] = study.creation_date
-        study_df["last_update_date"] = current_timestamp
 
         return study_df
 

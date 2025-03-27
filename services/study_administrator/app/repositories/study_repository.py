@@ -1,7 +1,7 @@
 from typing import get_args, TYPE_CHECKING
 
 from app.core.big_query import BigQueryClient, bigquery, get_bigquery_type
-from app.models.study import StudyShow, StudyShowTotal
+from app.models.study import StudyShow
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -41,7 +41,7 @@ class StudyRepository:
         """
         return self.bq.fetch_data(query)["total_studies"][0]
 
-    def query_studies(self, limit: int, offset: int, **kwargs) -> list[StudyShowTotal]:
+    def query_studies(self, limit: int, offset: int, **kwargs) -> list[StudyShow]:
         query_params = []
         conditions = []
 
