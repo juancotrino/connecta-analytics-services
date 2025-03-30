@@ -1,11 +1,15 @@
 import os
 import time
 import random
+from typing import Literal
 from datetime import datetime
 
 import pandas as pd
 
 from google.cloud import bigquery
+
+
+QUERY_OUTPUT_TYPES = Literal["raw", "dataframe"]
 
 
 def handle_rate_limit(func):
@@ -53,8 +57,17 @@ class BigQueryClient:
         )  # Make an API request.
         job.result()  # Wait for the job to complete
 
-    def fetch_data(self, query: str) -> pd.DataFrame:
-        return self.client.query(query).to_dataframe()
+    def fetch_data(
+        self,
+        query: str,
+        job_config: bigquery.QueryJobConfig | None = None,
+        output_type: QUERY_OUTPUT_TYPES = "raw",
+    ) -> bigquery.QueryJob | pd.DataFrame:
+        match output_type:
+            case "raw":
+                return self.client.query(query, job_config)
+            case "dataframe":
+                return self.client.query(query, job_config).to_dataframe()
 
     @handle_rate_limit
     def delete_data(self, query: str, job_config: bigquery.QueryJobConfig):

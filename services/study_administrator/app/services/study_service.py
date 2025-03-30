@@ -41,8 +41,8 @@ class StudyService:
     def get_study(self, study_id: int) -> StudyShow:
         return self.study_repository.get_study(study_id)
 
-    def get_total_studies(self) -> int:
-        return self.study_repository.get_total_studies()
+    def get_total_studies(self, **kwargs) -> int:
+        return self.study_repository.get_total_studies(**kwargs)
 
     def _get_roles_authorized_columns(
         self, authorized_columns: dict[str, list[str]], user_roles: list[str]

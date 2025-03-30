@@ -34,14 +34,7 @@ class StudyRepository:
 
     def get_studies(self) -> list[StudyShow]: ...
 
-    def get_total_studies(self) -> int:
-        query = f"""
-            SELECT COUNT(study_id) AS total_studies
-            FROM `{self.bq.schema_id}.{self.bq.data_set}.study`
-        """
-        return self.bq.fetch_data(query)["total_studies"][0]
-
-    def query_studies(self, limit: int, offset: int, **kwargs) -> list[StudyShow]:
+    def _build_filter_query(self, **kwargs) -> str:
         query_params = []
         conditions = []
 
@@ -67,7 +60,24 @@ class StudyRepository:
                         bigquery.ScalarQueryParameter(f"{_filter}_{i}", bq_type, value)
                     )
 
-        where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+        return query_params, f"WHERE {' AND '.join(conditions)}" if conditions else ""
+
+    def get_total_studies(self, **kwargs) -> int:
+        query_params, where_clause = self._build_filter_query(**kwargs)
+        query = f"""
+            SELECT COUNT(study_id) AS total_studies
+            FROM `{self.bq.schema_id}.{self.bq.data_set}.study`
+            {where_clause}
+        """
+
+        job_config = bigquery.QueryJobConfig(query_parameters=query_params)
+
+        return self.bq.fetch_data(query, job_config, output_type="dataframe")[
+            "total_studies"
+        ][0]
+
+    def query_studies(self, limit: int, offset: int, **kwargs) -> list[StudyShow]:
+        query_params, where_clause = self._build_filter_query(**kwargs)
 
         query = f"""
             SELECT *
@@ -85,7 +95,7 @@ class StudyRepository:
         )
 
         job_config = bigquery.QueryJobConfig(query_parameters=query_params)
-        query_job = self.bq.client.query(query, job_config=job_config)
+        query_job = self.bq.fetch_data(query, job_config)
 
         return [StudyShow(**dict(row)) for row in query_job]
 
