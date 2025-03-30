@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 @router.get(
     "/query",
     response_model=StudyShowTotal,
-    status_code=http_status.HTTP_201_CREATED,
+    status_code=http_status.HTTP_200_OK,
     dependencies=[Depends(authorize)],
 )
 def query_studies(

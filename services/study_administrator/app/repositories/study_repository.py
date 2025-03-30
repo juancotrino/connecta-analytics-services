@@ -1,4 +1,4 @@
-from typing import get_args, TYPE_CHECKING
+from typing import get_args, get_origin, TYPE_CHECKING
 
 from app.core.big_query import BigQueryClient, bigquery, get_bigquery_type
 from app.models.study import StudyShow
@@ -48,11 +48,24 @@ class StudyRepository:
                 py_type = get_args(StudyShow.model_fields[_filter].annotation)[0]
                 bq_type = get_bigquery_type(py_type)
 
-                # Handle multiple values with IN clause
-                param_placeholders = ", ".join(
-                    [f"@{_filter}_{i}" for i in range(len(param_values))]
-                )
-                conditions.append(f"{_filter} IN ({param_placeholders})")
+                if get_origin(py_type) is list:
+                    # Handle multiple values with IN clause
+                    param_placeholders = [
+                        f"@{_filter}_{i}" for i in range(len(param_values))
+                    ]
+                    or_clause = " OR ".join(
+                        [
+                            f"{_filter} LIKE CONCAT('%', {param_placeholder}, '%')"
+                            for param_placeholder in param_placeholders
+                        ]
+                    )
+                    conditions.append(f"({or_clause})")
+                else:
+                    # Handle multiple values with IN clause
+                    param_placeholders = ", ".join(
+                        [f"@{_filter}_{i}" for i in range(len(param_values))]
+                    )
+                    conditions.append(f"{_filter} IN ({param_placeholders})")
 
                 # Append query parameters
                 for i, value in enumerate(param_values):
@@ -120,7 +133,8 @@ class StudyRepository:
     def _get_last_id_number(self) -> int:
         last_study_number = self.bq.fetch_data(
             f"""
-            SELECT MAX(study_id) AS study_id FROM `{self.bq.schema_id}.{self.bq.data_set}.study`
+            SELECT MAX(study_id) AS study_id
+            FROM `{self.bq.schema_id}.{self.bq.data_set}.study`
             """
         )["study_id"][0]
 
