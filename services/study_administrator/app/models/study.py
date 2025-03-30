@@ -23,11 +23,12 @@ class StudyCountryCreate(BaseModel):
     study_type: list[str] | None = None
     value: float | None = None
     currency: str | None = None
-    consultant: str | None = None
     description: str | None = None
     number_of_surveys: int | None = None
     number_of_routes: int | None = None
     number_of_visits: int | None = None
+
+    model_config = ConfigDict(extra="allow")
 
 
 class StudyCountryUpdate(BaseModel):
@@ -76,6 +77,7 @@ class StudyShow(BaseModel):
 
 class StudyShowTotal(BaseModel):
     total_studies: int
+    roles_authorized_columns: list[str]
     studies: list[StudyShow]
 
 

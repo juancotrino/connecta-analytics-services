@@ -49,7 +49,9 @@ def query_studies(
     }
 
     try:
-        studies = study_service.query_filtered_studies(user, limit, offset, **kwargs)
+        roles_authorized_columns, studies = study_service.query_filtered_studies(
+            user, limit, offset, **kwargs
+        )
         total_studies = study_service.get_total_studies()
     except Exception as e:
         message = f"Failed to fetch studies: {str(e)}"
@@ -57,7 +59,11 @@ def query_studies(
         raise HTTPException(
             status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=message
         )
-    return {"total_studies": total_studies, "studies": studies}
+    return {
+        "total_studies": total_studies,
+        "roles_authorized_columns": roles_authorized_columns,
+        "studies": studies,
+    }
 
 
 @router.post(
@@ -69,9 +75,11 @@ def query_studies(
 def create(
     study: StudyCreate,
     study_service: StudyService = Depends(get_study_service),
+    user: "User" = Depends(get_user),
 ) -> dict[str, str]:
     try:
-        study_id = study_service.create_study(study)
+        # TODO: Now I pass the user to get consultant and populate that field from the user's info directly
+        study_id = study_service.create_study(user, study)
     except Exception as e:
         message = f"Failed to fetch studies: {str(e)}"
         logger.error(message)

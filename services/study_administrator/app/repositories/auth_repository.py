@@ -1,21 +1,45 @@
 import os
 
-from firebase_admin import firestore
+from firebase_admin import firestore, auth
+
 from app.core.firebase import FirebaseAdmin
+from app.models.user import User
 
 
 class AuthRepository:
     def __init__(self):
         self._firebase = FirebaseAdmin(os.getenv("GCP_PROJECT_ID"))
         self.db = firestore.client()
+        self.default_role = ("connecta-viewer",)
+
+    def _get_user_metadata(self, user_id: str) -> dict:
+        document = self.db.collection("users").document(user_id).get()
+        return document.to_dict() if document.exists else {}
 
     def get_user_roles(self, user_id: str) -> tuple[str]:
-        document = self.db.collection("users").document(user_id).get()
+        user_metadata = self._get_user_metadata(user_id)
+        return (
+            tuple(user_metadata["roles"])
+            if user_metadata.get("roles")
+            else self.default_role
+        )
 
-        if document.exists:
-            user_info = document.to_dict()
-            roles = tuple(user_info["roles"])
-        else:
-            roles = ("connecta-viewer",)
+    def get_user_delegates(self, user_id: str) -> tuple[str]:
+        user_metadata = self._get_user_metadata(user_id)
+        return (
+            tuple(user_metadata["delegates"])
+            if user_metadata.get("delegates")
+            else tuple()
+        )
 
-        return roles
+    def get_users(self) -> list[User]:
+        users = []
+        page = auth.list_users()
+
+        while page:
+            for user in page.users:
+                users.append(
+                    User(user_id=user.uid, name=user.display_name, email=user.email)
+                )
+            page = page.get_next_page()
+        return users

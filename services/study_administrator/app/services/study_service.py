@@ -8,6 +8,7 @@ import pandas as pd
 from fastapi import status
 from fastapi.exceptions import HTTPException
 
+from app.repositories.auth_repository import AuthRepository
 from app.repositories.study_repository import StudyRepository
 from app.repositories.business_repository import BusinessRepository
 from app.models.study import (
@@ -28,13 +29,14 @@ class StudyService:
     def __init__(self, study_repository: StudyRepository):
         self.study_repository = study_repository
         self.business_repository = BusinessRepository()
+        self.auth_repository = AuthRepository()
         self.timezone = timezone("America/Bogota")
         self.countries_iso_2_code = self.business_repository.get_countries_iso_2_code()
         self.study_root_folder_url = "https://connectasas.sharepoint.com/sites/connecta-ciencia_de_datos/Documentos%20compartidos/estudios"
         self.initial_status = "Propuesta"
 
-    def create_study(self, study: StudyCreate) -> int:
-        study_df = self._build_study_create_entry(study)
+    def create_study(self, user: "User", study: StudyCreate) -> int:
+        study_df = self._build_study_create_entry(user, study)
         self.study_repository.create_study(study_df)
         return study_df["study_id"].unique()[0]
 
@@ -67,7 +69,7 @@ class StudyService:
 
     def query_filtered_studies(
         self, user: "User", limit: int, offset: int, **kwargs
-    ) -> list[StudyShow]:
+    ) -> tuple[list[str], list[StudyShow]]:
         studies = self.study_repository.query_studies(limit, offset, **kwargs)
         authorized_columns = self.business_repository.get_authorized_columns()
         roles_authorized_columns = self._get_roles_authorized_columns(
@@ -76,7 +78,7 @@ class StudyService:
         studies_filtered = self._filter_columns_by_roles(
             studies, roles_authorized_columns
         )
-        return studies_filtered
+        return roles_authorized_columns, studies_filtered
 
     def get_all_studies(self) -> list[StudyShow]:
         return self.study_repository.get_studies()
@@ -92,12 +94,19 @@ class StudyService:
             # TODO: Create in firestore a document for delegates of each user.
             # Use uuid of the delegate. Create 'delegates' list in users colection
             # for each user
-            if user.name != country.consultant:
+            consultant_delegates = self.auth_repository.get_user_delegates(
+                country.consultant
+            )
+            if (
+                user.name != country.consultant
+                or user.user_id not in consultant_delegates
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=(
                         f"Cannot update study '{study.study_name}' for country "
-                        f"'{country.country}'. You are not the study's supervisor."
+                        f"'{country.country}'. You are not the study's "
+                        "consultant or a consultant's delegate."
                     ),
                 )
             if country.status == "En ejecución":
@@ -142,10 +151,10 @@ class StudyService:
         self, study_dict: dict, country: StudyCountryUpdate, study_country_folders: dict
     ):
         try:
+            study_general_info = {
+                k: v for k, v in study_dict.items() if not isinstance(v, list)
+            }
             if country.status != self.initial_status:
-                study_general_info = {
-                    k: v for k, v in study_dict.items() if not isinstance(v, list)
-                }
                 study_country = study_general_info | country.model_dump()
                 study_country["study_country_folder"] = study_country_folders[
                     country.country
@@ -234,7 +243,9 @@ class StudyService:
 
         return study_df
 
-    def _build_study_create_entry(self, study: StudyCreate) -> pd.DataFrame:
+    def _build_study_create_entry(
+        self, user: "User", study: StudyCreate
+    ) -> pd.DataFrame:
         current_timestamp = datetime.now(self.timezone)
 
         countries = [country.model_dump() for country in study.countries]
@@ -249,6 +260,7 @@ class StudyService:
         study_df["creation_date"] = current_timestamp
         study_df["last_update_date"] = current_timestamp
         study_df["status"] = self.initial_status
+        study_df["consultant"] = f"{user.user_id}:{user.name}"
 
         return study_df
 

@@ -18,10 +18,13 @@ class AuthService:
         self.cookie_expiry_days = COOKIE_EXPIRY_DAYS
         self.encode_algorithm = os.getenv("ENCODE_ALGORITHM")
 
-    def add_roles_to_user(self, user: User) -> User:
-        user_roles = self.auth_repository.get_user_roles(user.user_id)
-        user.roles = user_roles
-        return user
+    def add_roles(self, user: User) -> None:
+        user.roles = self.auth_repository.get_user_roles(user.user_id)
+        return
+
+    def add_delegates(self, user: User) -> None:
+        user.delegates = self.auth_repository.get_user_delegates(user.user_id)
+        return
 
     def get_custom_token(self, user: User | None):
         if not user:
@@ -32,7 +35,8 @@ class AuthService:
         user.expiration_date = (
             datetime.now(timezone.utc) + timedelta(days=self.cookie_expiry_days)
         ).timestamp()
-        user = self.add_roles_to_user(user)
+        self.add_roles(user)
+        self.add_delegates(user)
         return jwt.encode(
             user.model_dump(),
             self.cookie_key,
