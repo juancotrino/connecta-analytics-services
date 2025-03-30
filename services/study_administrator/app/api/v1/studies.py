@@ -52,7 +52,7 @@ def query_studies(
         roles_authorized_columns, studies = study_service.query_filtered_studies(
             user, limit, offset, **kwargs
         )
-        total_studies = study_service.get_total_studies()
+        total_studies = study_service.get_total_studies(**kwargs)
     except Exception as e:
         message = f"Failed to fetch studies: {str(e)}"
         logger.error(message)
