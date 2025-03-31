@@ -28,7 +28,7 @@ class BusinessRepository:
         self._firebase = FirebaseAdmin(os.getenv("GCP_PROJECT_ID"))
         self.sharepoint = SharePoint()
         self.db = firestore.client()
-        self.sharepoint_base_path = "Documentos compartidos/estudios"
+        self.sharepoint_base_path = "Documentos compartidos/estudios_dev"
 
     def get_countries_iso_2_code(self) -> dict[str, str]:
         url = "https://api.worldbank.org/v2/country?format=json&per_page=300&region=LCN"
