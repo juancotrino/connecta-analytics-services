@@ -11,6 +11,8 @@ twilio_client = TwilioClient(
     os.getenv("TWILIO_ACCOUNT_SID"), os.getenv("TWILIO_AUTH_TOKEN")
 )
 
+verify_service = twilio_client.verify.services(os.getenv("TWILIO_SERVICE_SID"))
+
 bq_client = bigquery.Client()
 
 with open(Path(__file__).parent.joinpath("countries_phone_codes.json"), "r") as file:
@@ -76,15 +78,11 @@ def is_respondent_qualified(phone_number: int, project_type: str):
 
 
 def send_code(phone_number: str):
-    return twilio_client.verify.services(
-        os.getenv("TWILIO_SERVICE_SID")
-    ).verifications.create(to=phone_number, channel="sms")
+    return verify_service.verifications.create(to=phone_number, channel="sms")
 
 
 def verify_code(phone_number: str, code: str):
-    return twilio_client.verify.services(
-        os.getenv("TWILIO_SERVICE_SID")
-    ).verification_checks.create(to=phone_number, code=code)
+    return verify_service.verification_checks.create(to=phone_number, code=code)
 
 
 def write_to_bq(data: dict):
