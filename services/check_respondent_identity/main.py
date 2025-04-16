@@ -121,7 +121,7 @@ def verify(country: str, phone_number: str, code: str):
         while verification_attempts < MAX_VERIFICATION_ATTEMPTS:
             verification_check = resources.verify_code(phone_number, code)
             _status = verification_check.status
-            if _status == "approved":
+            if _status != "approved":
                 message = (
                     f"Verification code failed with status '{_status}'. "
                     "Most likely the code is incorrect and do not match the one "
