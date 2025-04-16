@@ -122,6 +122,8 @@ def verify(country: str, phone_number: str, code: str):
             verification_check = resources.verify_code(phone_number, code)
             _status = verification_check.status
             if _status == "approved":
+                message = f"Verification code failed with status '{_status}'."
+                app.logger.warning(message)
                 break
             else:
                 verification_attempts += 1
