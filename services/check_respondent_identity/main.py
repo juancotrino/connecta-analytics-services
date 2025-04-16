@@ -121,15 +121,15 @@ def verify(country: str, phone_number: str, code: str):
         while verification_attempts < MAX_VERIFICATION_ATTEMPTS:
             verification_check = resources.verify_code(phone_number, code)
             _status = verification_check.status
-            if _status != "approved":
-                message = (
-                    f"Verification code failed with status '{_status}'. "
-                    "Most likely the code is incorrect and do not match the one "
-                    "sent by Twilio."
-                )
-                app.logger.warning(message)
+            if _status == "approved":
                 break
             else:
+                message = (
+                    f"Verification code failed with status '{_status}' in "
+                    f"attempt {verification_attempts}. Most likely the code"
+                    " is incorrect and do not match the one sent by Twilio."
+                )
+                app.logger.warning(message)
                 verification_attempts += 1
                 time.sleep(2)
 
