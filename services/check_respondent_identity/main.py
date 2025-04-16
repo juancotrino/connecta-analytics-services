@@ -1,4 +1,5 @@
 import os
+import time
 from datetime import datetime, timezone
 
 from flask import Flask, request
@@ -19,6 +20,7 @@ setup_logging()
 app = Flask(__name__)
 
 ALLOWED_ORIGIN = "https://connecta.questionpro.com"  # Replace with the allowed origin
+MAX_VERIFICATION_ATTEMPTS = 3
 
 # Configure CORS to allow only specific origin
 CORS(app, resources={r"/*": {"origins": ALLOWED_ORIGIN}})
@@ -115,9 +117,23 @@ def verify(country: str, phone_number: str, code: str):
         # Sanitize the code
         code = code.replace(" ", "")
         # Verify the code using Twilio
-        verification_check = resources.verify_code(phone_number, code)
-        _status = verification_check.status
-        message = f"Verification code sent with status '{_status}'."
+        verification_attempts = 0
+        while verification_attempts < MAX_VERIFICATION_ATTEMPTS:
+            verification_check = resources.verify_code(phone_number, code)
+            _status = verification_check.status
+            if _status == "approved":
+                break
+            else:
+                message = (
+                    f"Verification code failed with status '{_status}' in "
+                    f"attempt {verification_attempts}. Most likely the code"
+                    " is incorrect and do not match the one sent by Twilio."
+                )
+                app.logger.warning(message)
+                verification_attempts += 1
+                time.sleep(2)
+
+        message = f"Verification code made with status '{_status}'."
         app.logger.info(message)
         return {
             "message": message,

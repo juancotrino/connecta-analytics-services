@@ -32,7 +32,7 @@ class StudyService:
         self.auth_repository = AuthRepository()
         self.timezone = timezone("America/Bogota")
         self.countries_iso_2_code = self.business_repository.get_countries_iso_2_code()
-        self.study_root_folder_url = "https://connectasas.sharepoint.com/sites/connecta-ciencia_de_datos/Documentos%20compartidos/estudios"
+        self.study_root_folder_url = "https://connectasas.sharepoint.com/sites/connecta-ciencia_de_datos/Documentos%20compartidos/estudios_dev"
         self.initial_status = "Propuesta"
 
     def create_study(self, user: "User", study: StudyCreate) -> int:
