@@ -18,19 +18,11 @@ class AuthRepository:
 
     def get_user_roles(self, user_id: str) -> tuple[str]:
         user_metadata = self._get_user_metadata(user_id)
-        return (
-            tuple(user_metadata["roles"])
-            if user_metadata.get("roles")
-            else self.default_role
-        )
+        return tuple(user_metadata.get("roles", self.default_role))
 
     def get_user_delegates(self, user_id: str) -> tuple[str]:
         user_metadata = self._get_user_metadata(user_id)
-        return (
-            tuple(user_metadata["delegates"])
-            if user_metadata.get("delegates")
-            else tuple()
-        )
+        return tuple(user_metadata.get("delegates", []))
 
     def get_users(self) -> list[User]:
         users = []
@@ -43,3 +35,10 @@ class AuthRepository:
                 )
             page = page.get_next_page()
         return users
+
+    def get_user_id_from_name(self, user_name: str) -> str:
+        users = self.get_users()
+        for user in users:
+            if user.name == user_name:
+                return user.user_id
+        return None

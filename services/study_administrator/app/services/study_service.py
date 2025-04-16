@@ -83,6 +83,15 @@ class StudyService:
     def get_all_studies(self) -> list[StudyShow]:
         return self.study_repository.get_studies()
 
+    def _get_consultant_id(self, consultant: str) -> str:
+        consultant_id = self.auth_repository.get_user_id_from_name(consultant)
+        if not consultant_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Consultant not found.",
+            )
+        return consultant_id
+
     def update_study(self, study_id: int, study: StudyUpdate, user: "User"):
         study_dict = study.model_dump(exclude={"creation_date"})
         study_dict["study_id"] = study_id
@@ -91,11 +100,9 @@ class StudyService:
 
         for country in study.countries:
             country.last_update_date = datetime.now(self.timezone)
-            # TODO: Create in firestore a document for delegates of each user.
-            # Use uuid of the delegate. Create 'delegates' list in users colection
-            # for each user
+            consultant_id = self._get_consultant_id(country.consultant)
             consultant_delegates = self.auth_repository.get_user_delegates(
-                country.consultant
+                consultant_id
             )
             if (
                 user.name != country.consultant
@@ -139,7 +146,7 @@ class StudyService:
                             f"'{country.country}'. Error: {str(e)}"
                         )
 
-            self._send_msteams_card(study_dict, country, study_country_folders)
+                self._send_msteams_card(study_dict, country, study_country_folders)
 
         study_df = self._build_update_study_entry(study_id, study)
         self.study_repository.update_study(study_id, study_df)
