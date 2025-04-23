@@ -29,6 +29,7 @@ class BusinessRepository:
         self.sharepoint = SharePoint()
         self.db = firestore.client()
         self.sharepoint_base_path = "Documentos compartidos/estudios_dev"
+        self.sharepoint_proposal_path = "Documentos compartidos/propuestas"
 
     def get_countries_iso_2_code(self) -> dict[str, str]:
         url = "https://api.worldbank.org/v2/country?format=json&per_page=300&region=LCN"
@@ -110,25 +111,35 @@ class BusinessRepository:
         self.sharepoint.create_folder_structure(study_path, dirs)
 
     def get_last_file_version_in_sharepoint(
-        self, id_study_name: str, file_path: str
+        self,
+        id_study_name: str,
+        file_path: str | None = None,
+        status: str | None = None,
     ) -> list[str]:
-        return self.sharepoint.list_files(
-            f"{self.sharepoint_base_path}/{id_study_name}/{file_path}"
-        )
+        if status is None:
+            return self.sharepoint.list_files(
+                f"{self.sharepoint_base_path}/{id_study_name}/{file_path}"
+            )
+        else:
+            return self.sharepoint.list_files(self.sharepoint_proposal_path)
 
     def compose_file_name(
         self,
         upload_files: dict[str, str | list[str]],
         file_name: str,
         id_study_name: str,
+        status: str | None = None,
     ) -> str:
-        file_path = upload_files["path"]
+        file_path = upload_files["path"] if status is None else None
         file_type = file_name.split(".")[-1]
         allowed_file_types = upload_files["file_type"].split(",")
         if file_type not in allowed_file_types:
             raise ValueError("File type not allowed")
+
         if upload_files["acronym"] and upload_files["file_type"]:
-            files = self.get_last_file_version_in_sharepoint(id_study_name, file_path)
+            files = self.get_last_file_version_in_sharepoint(
+                id_study_name, file_path, status
+            )
             files = [file for file in files if upload_files["acronym"] in file]
             if not files:
                 composed_file_name = (

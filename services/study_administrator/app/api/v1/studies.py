@@ -78,7 +78,6 @@ def create(
     user: "User" = Depends(get_user),
 ) -> dict[str, str]:
     try:
-        # TODO: Now I pass the user to get consultant and populate that field from the user's info directly
         study_id = study_service.create_study(user, study)
     except Exception as e:
         message = f"Failed to fetch studies: {str(e)}"

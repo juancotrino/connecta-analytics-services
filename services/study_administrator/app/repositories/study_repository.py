@@ -135,7 +135,8 @@ class StudyRepository:
             f"""
             SELECT MAX(study_id) AS study_id
             FROM `{self.bq.schema_id}.{self.bq.data_set}.study`
-            """
+            """,
+            output_type="dataframe",
         )["study_id"][0]
 
         return last_study_number

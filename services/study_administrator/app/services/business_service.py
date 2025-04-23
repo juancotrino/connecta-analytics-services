@@ -1,12 +1,25 @@
+import logging
+
 from app.repositories.business_repository import BusinessRepository
+from app.repositories.auth_repository import AuthRepository
+
+logger = logging.getLogger(__name__)
 
 
 class BusinessService:
     def __init__(self, business_repository: BusinessRepository):
         self.business_repository = business_repository
+        self.auth_repository = AuthRepository()
 
     def get_business_data(self) -> dict[str, list[str]]:
-        return self.business_repository.get_business_data()
+        business_data = self.business_repository.get_business_data()
+        for i, consultant in enumerate(business_data["consultants"]):
+            try:
+                consultant_name = self.auth_repository.get_user_name_from_id(consultant)
+                business_data["consultants"][i] = consultant_name
+            except Exception as e:
+                logger.warning(f"Error getting user name from id: {e}")
+        return business_data
 
     def get_authorized_roles_by_endpoint(self, endpoint_path: str):
         return self.business_repository.get_authorized_roles_by_endpoint(endpoint_path)

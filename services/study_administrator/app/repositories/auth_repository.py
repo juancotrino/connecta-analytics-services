@@ -36,6 +36,10 @@ class AuthRepository:
             page = page.get_next_page()
         return users
 
+    def get_user_name_from_id(self, user_id: str) -> str:
+        user = auth.get_user(user_id)
+        return user.display_name
+
     def get_user_id_from_name(self, user_name: str) -> str:
         users = self.get_users()
         for user in users:

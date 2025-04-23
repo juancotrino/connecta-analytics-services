@@ -1,6 +1,6 @@
 from typing_extensions import Annotated
 from datetime import datetime
-from pydantic import BaseModel, BeforeValidator, ConfigDict
+from pydantic import BaseModel, BeforeValidator
 from app.models.validators import ensure_list
 
 
@@ -28,8 +28,6 @@ class StudyCountryCreate(BaseModel):
     number_of_routes: int | None = None
     number_of_visits: int | None = None
 
-    model_config = ConfigDict(extra="allow")
-
 
 class StudyCountryUpdate(BaseModel):
     country: str
@@ -43,8 +41,9 @@ class StudyCountryUpdate(BaseModel):
     number_of_surveys: int | None = None
     number_of_routes: int | None = None
     number_of_visits: int | None = None
-
-    model_config = ConfigDict(extra="allow")
+    creation_date: datetime | None = None
+    last_update_date: datetime | None = None
+    is_updated: bool = False
 
 
 class Study(BaseModel):
@@ -92,5 +91,4 @@ class StudyUpdate(BaseModel):
     study_name: str
     client: str
     source: str | None = "app"
-    creation_date: datetime
     countries: list[StudyCountryUpdate]

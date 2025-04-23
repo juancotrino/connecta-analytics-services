@@ -67,6 +67,16 @@ class StudyService:
     def query_studies(self, limit: int, offset: int, **kwargs) -> list[StudyShow]:
         return self.study_repository.query_studies(limit, offset, **kwargs)
 
+    def _postprocess_studies(self, studies: list[StudyShow]) -> list[StudyShow]:
+        for study in studies:
+            try:
+                study.consultant = self.auth_repository.get_user_name_from_id(
+                    study.consultant
+                )
+            except Exception as e:
+                logger.warning(f"Error getting user name from id: {e}")
+        return studies
+
     def query_filtered_studies(
         self, user: "User", limit: int, offset: int, **kwargs
     ) -> tuple[list[str], list[StudyShow]]:
@@ -78,6 +88,7 @@ class StudyService:
         studies_filtered = self._filter_columns_by_roles(
             studies, roles_authorized_columns
         )
+        studies_filtered = self._postprocess_studies(studies_filtered)
         return roles_authorized_columns, studies_filtered
 
     def get_all_studies(self) -> list[StudyShow]:
@@ -93,12 +104,14 @@ class StudyService:
         return consultant_id
 
     def update_study(self, study_id: int, study: StudyUpdate, user: "User"):
-        study_dict = study.model_dump(exclude={"creation_date"})
+        study_dict = study.model_dump()
         study_dict["study_id"] = study_id
 
         study_country_folders = {}
 
         for country in study.countries:
+            if not country.is_updated:
+                continue
             country.last_update_date = datetime.now(self.timezone)
             consultant_id = self._get_consultant_id(country.consultant)
             consultant_delegates = self.auth_repository.get_user_delegates(
@@ -174,8 +187,8 @@ class StudyService:
         except Exception as e:
             logger.error(f"Failed to send Microsoft Teams card. Error: {str(e)}")
 
-    def _check_study_exists(self, **kwargs: dict) -> bool:
-        return self.query_studies(1, 0, **kwargs) != []
+    def _get_existing_study(self, **kwargs: dict) -> list[StudyShow]:
+        return self.query_studies(1, 0, **kwargs)
 
     def upload_file(
         self,
@@ -186,12 +199,21 @@ class StudyService:
         file: "UploadFile",
         user_roles: list[str],
     ) -> None:
-        study_exists = self._check_study_exists(
+        existing_study = self._get_existing_study(
             study_id=study_id, country=country, study_name=study_name
         )
-        if not study_exists:
+        if not existing_study:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Study does not exist."
+            )
+
+        if file_name != "proposal" and existing_study[0].status == self.initial_status:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "You cannot upload the selected file to a "
+                    "study that is not in the initial status"
+                ),
             )
 
         upload_files = self.business_repository.get_upload_files()
@@ -206,14 +228,22 @@ class StudyService:
         study_path_name = self._build_study_path_name(study_id, country, study_name)
         upload_file_data = allowed_upload_files[file_name]
 
-        full_relative_path = (
-            f"{self.business_repository.sharepoint_base_path}/"
-            f"{study_path_name}/{upload_file_data['path']}"
-        )
-
-        new_file_name = self.business_repository.compose_file_name(
-            upload_file_data, file.filename, study_path_name
-        )
+        if existing_study[0].status == self.initial_status and file_name == "proposal":
+            full_relative_path = self.business_repository.sharepoint_proposal_path
+            new_file_name = self.business_repository.compose_file_name(
+                upload_file_data,
+                file.filename,
+                study_path_name,
+                status=self.initial_status,
+            )
+        else:
+            full_relative_path = (
+                f"{self.business_repository.sharepoint_base_path}/"
+                f"{study_path_name}/{upload_file_data['path']}"
+            )
+            new_file_name = self.business_repository.compose_file_name(
+                upload_file_data, file.filename, study_path_name
+            )
 
         self.business_repository.upload_file(
             full_relative_path, file.file, new_file_name
@@ -231,7 +261,8 @@ class StudyService:
         for element in data:
             for attribute, value in element.items():
                 if isinstance(value, list):
-                    element[attribute] = ",".join(element[attribute])
+                    joined_value = ",".join(value)
+                    element[attribute] = joined_value if joined_value else None
         return data
 
     def _build_update_study_entry(
@@ -240,13 +271,18 @@ class StudyService:
         countries = [country.model_dump() for country in study.countries]
         countries = self._transform_list_data(countries)
 
+        for country in countries:
+            consultant_id = self._get_consultant_id(country["consultant"])
+            country["consultant"] = consultant_id
+
         study_df = pd.DataFrame(countries)
 
         study_df["study_id"] = study_id
         study_df["study_name"] = study.study_name
         study_df["client"] = study.client
         study_df["source"] = study.source
-        study_df["creation_date"] = study.creation_date
+
+        study_df = study_df.drop(columns=["is_updated"])
 
         return study_df
 
@@ -267,7 +303,7 @@ class StudyService:
         study_df["creation_date"] = current_timestamp
         study_df["last_update_date"] = current_timestamp
         study_df["status"] = self.initial_status
-        study_df["consultant"] = f"{user.user_id}:{user.name}"
+        study_df["consultant"] = user.user_id
 
         return study_df
 
