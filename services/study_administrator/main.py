@@ -17,7 +17,10 @@ logger = logging.getLogger(__name__)
 # Initialize API
 app = FastAPI()
 
-origins = ["http://localhost:3000"]
+origins = [
+    "http://localhost:3000",
+    "https://connecta-analytics-app-tmjr7ovgka-uc.a.run.app",
+]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
