@@ -19,7 +19,7 @@ app = FastAPI()
 
 origins = [
     "http://localhost:3000",
-    "https://connecta-analytics-app-tmjr7ovgka-uc.a.run.app",
+    "https://connecta-analytics-app-384349768580.us-central1.run.app",
 ]
 app.add_middleware(
     CORSMiddleware,
