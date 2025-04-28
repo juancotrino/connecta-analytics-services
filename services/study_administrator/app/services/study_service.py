@@ -35,8 +35,8 @@ class StudyService:
         self.study_root_folder_url = "https://connectasas.sharepoint.com/sites/connecta-ciencia_de_datos/Documentos%20compartidos/estudios_dev"
         self.initial_status = "Propuesta"
 
-    def create_study(self, user: "User", study: StudyCreate) -> int:
-        study_df = self._build_study_create_entry(user, study)
+    def create_study(self, study: StudyCreate) -> int:
+        study_df = self._build_study_create_entry(study)
         self.study_repository.create_study(study_df)
         return study_df["study_id"].unique()[0]
 
@@ -304,9 +304,7 @@ class StudyService:
 
         return study_df
 
-    def _build_study_create_entry(
-        self, user: "User", study: StudyCreate
-    ) -> pd.DataFrame:
+    def _build_study_create_entry(self, study: StudyCreate) -> pd.DataFrame:
         current_timestamp = datetime.now(self.timezone)
 
         countries = [country.model_dump() for country in study.countries]

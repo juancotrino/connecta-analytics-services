@@ -79,10 +79,9 @@ def query_studies(
 def create(
     study: StudyCreate,
     study_service: StudyService = Depends(get_study_service),
-    user: "User" = Depends(get_user),
 ) -> dict[str, str]:
     try:
-        study_id = study_service.create_study(user, study)
+        study_id = study_service.create_study(study)
     except HTTPException as e:
         message = f"Failed to create study: {str(e)}"
         logger.error(message)
