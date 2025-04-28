@@ -53,6 +53,10 @@ def query_studies(
             user, limit, offset, **kwargs
         )
         total_studies = study_service.get_total_studies(**kwargs)
+    except HTTPException as e:
+        message = f"Failed to fetch studies: {str(e)}"
+        logger.error(message)
+        raise e
     except Exception as e:
         message = f"Failed to fetch studies: {str(e)}"
         logger.error(message)
@@ -79,8 +83,12 @@ def create(
 ) -> dict[str, str]:
     try:
         study_id = study_service.create_study(user, study)
+    except HTTPException as e:
+        message = f"Failed to create study: {str(e)}"
+        logger.error(message)
+        raise e
     except Exception as e:
-        message = f"Failed to fetch studies: {str(e)}"
+        message = f"Failed to create study: {str(e)}"
         logger.error(message)
         raise HTTPException(
             status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=message
@@ -102,11 +110,16 @@ def update(
 ) -> dict[str, str]:
     try:
         study_service.update_study(study_id, study, user)
+    except HTTPException as e:
+        message = f"Failed to update study: {str(e)}"
+        logger.error(message)
+        raise e
     except Exception as e:
-        message = f"Failed to fetch studies: {str(e)}"
+        message = f"Failed to update study: {str(e)}"
         logger.error(message)
         raise HTTPException(
-            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=message
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=message,
         )
     return {"message": f"Study ID: {study_id}, successfully updated"}
 
@@ -130,6 +143,13 @@ def upload(
         study_service.upload_file(
             study_id, country, study_name, file_name, file, user.roles
         )
+    except HTTPException as e:
+        message = (
+            f"Failed to upload file to study '{study_id}', country '{country}', "
+            f"study name '{study_name}'. Error: {str(e)}"
+        )
+        logger.error(message)
+        raise e
     except Exception as e:
         message = (
             f"Failed to upload file to study '{study_id}', country '{country}', "
