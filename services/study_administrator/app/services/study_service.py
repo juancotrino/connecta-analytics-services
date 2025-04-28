@@ -277,9 +277,11 @@ class StudyService:
             f"{study_id}_{country_code.lower()}_{study_name.replace(' ', '_').lower()}"
         )
 
-    def _transform_list_data(self, data: list[dict]) -> list[dict]:
+    def _transform_data(self, data: list[dict]) -> list[dict]:
         for element in data:
             for attribute, value in element.items():
+                if attribute == "consultant":
+                    element[attribute] = self._get_consultant_id(value)
                 if isinstance(value, list):
                     joined_value = ",".join(value)
                     element[attribute] = joined_value if joined_value else None
@@ -289,11 +291,7 @@ class StudyService:
         self, study_id: int, study: StudyUpdate
     ) -> pd.DataFrame:
         countries = [country.model_dump() for country in study.countries]
-        countries = self._transform_list_data(countries)
-
-        for country in countries:
-            consultant_id = self._get_consultant_id(country["consultant"])
-            country["consultant"] = consultant_id
+        countries = self._transform_data(countries)
 
         study_df = pd.DataFrame(countries)
 
@@ -308,7 +306,7 @@ class StudyService:
         current_timestamp = datetime.now(self.timezone)
 
         countries = [country.model_dump() for country in study.countries]
-        countries = self._transform_list_data(countries)
+        countries = self._transform_data(countries)
 
         study_df = pd.DataFrame(countries)
 
