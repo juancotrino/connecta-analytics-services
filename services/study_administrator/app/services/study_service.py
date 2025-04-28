@@ -110,8 +110,6 @@ class StudyService:
         study_country_folders = {}
 
         for country in study.countries:
-            if not country.is_updated:
-                continue
             country.last_update_date = datetime.now(self.timezone)
             consultant_id = self._get_consultant_id(country.consultant)
             consultant_delegates = self.auth_repository.get_user_delegates(
@@ -119,7 +117,7 @@ class StudyService:
             )
             if (
                 user.name != country.consultant
-                or user.user_id not in consultant_delegates
+                and user.user_id not in consultant_delegates
             ):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
@@ -281,8 +279,6 @@ class StudyService:
         study_df["study_name"] = study.study_name
         study_df["client"] = study.client
         study_df["source"] = study.source
-
-        study_df = study_df.drop(columns=["is_updated"])
 
         return study_df
 

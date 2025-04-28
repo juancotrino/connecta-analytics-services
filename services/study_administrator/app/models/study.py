@@ -43,7 +43,6 @@ class StudyCountryUpdate(BaseModel):
     number_of_visits: int | None = None
     creation_date: datetime | None = None
     last_update_date: datetime | None = None
-    is_updated: bool = False
 
 
 class Study(BaseModel):
