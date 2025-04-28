@@ -64,8 +64,28 @@ class StudyService:
                 delattr(study, column)
         return studies
 
+    def _convert_datetime_fields_to_timezone(self, study: StudyShow) -> None:
+        """
+        Convert all datetime fields in an object to the specified timezone.
+
+        Args:
+            obj: The object whose datetime fields should be converted
+        """
+        for attr_name, attr_value in study.model_dump().items():
+            if isinstance(attr_value, datetime):
+                # First make the naive datetime UTC-aware
+                utc_dt = attr_value.replace(tzinfo=timezone("UTC"))
+                # Then convert to target timezone
+                converted = utc_dt.astimezone(self.timezone)
+                # Finally make it naive again
+                naive_datetime = converted.replace(tzinfo=None)
+                setattr(study, attr_name, naive_datetime)
+
     def query_studies(self, limit: int, offset: int, **kwargs) -> list[StudyShow]:
-        return self.study_repository.query_studies(limit, offset, **kwargs)
+        studies = self.study_repository.query_studies(limit, offset, **kwargs)
+        for study in studies:
+            self._convert_datetime_fields_to_timezone(study)
+        return studies
 
     def _postprocess_studies(self, studies: list[StudyShow]) -> list[StudyShow]:
         for study in studies:
@@ -80,7 +100,7 @@ class StudyService:
     def query_filtered_studies(
         self, user: "User", limit: int, offset: int, **kwargs
     ) -> tuple[list[str], list[StudyShow]]:
-        studies = self.study_repository.query_studies(limit, offset, **kwargs)
+        studies = self.query_studies(limit, offset, **kwargs)
         authorized_columns = self.business_repository.get_authorized_columns()
         roles_authorized_columns = self._get_roles_authorized_columns(
             authorized_columns, user.roles
