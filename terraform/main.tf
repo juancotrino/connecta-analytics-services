@@ -45,7 +45,7 @@ module "cloud_run" {
       name   = "service-study-administrator"
       image  = "${var.region}-docker.pkg.dev/${var.project_id}/connecta-services/study-administrator:latest"
       cpu    = "1000m"
-      memory = "256Mi"
+      memory = "512Mi"
       service_account_email = var.service_account_email
       template_annotations  = var.template_annotations
       secrets = [
