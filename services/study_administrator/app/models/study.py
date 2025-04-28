@@ -23,6 +23,7 @@ class StudyCountryCreate(BaseModel):
     study_type: list[str] | None = None
     value: float | None = None
     currency: str | None = None
+    consultant: str | None = None
     description: str | None = None
     number_of_surveys: int | None = None
     number_of_routes: int | None = None
