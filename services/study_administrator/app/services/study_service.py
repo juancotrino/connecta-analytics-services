@@ -321,7 +321,6 @@ class StudyService:
         study_df["creation_date"] = current_timestamp
         study_df["last_update_date"] = current_timestamp
         study_df["status"] = self.initial_status
-        study_df["consultant"] = user.user_id
 
         return study_df
 
