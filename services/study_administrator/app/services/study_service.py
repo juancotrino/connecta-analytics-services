@@ -110,7 +110,6 @@ class StudyService:
         study_country_folders = {}
 
         for country in study.countries:
-            country.last_update_date = datetime.now(self.timezone)
             consultant_id = self._get_consultant_id(country.consultant)
             consultant_delegates = self.auth_repository.get_user_delegates(
                 consultant_id
