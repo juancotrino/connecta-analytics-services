@@ -299,7 +299,7 @@ class StudyService:
                 ]
                 for attribute, value in study_country.items():
                     if isinstance(value, datetime):
-                        study_country[attribute] = value.strftime("%d/%m/%Y")
+                        study_country[attribute] = value.strftime("%d/%m/%Y %H:%M:%S")
                 self.business_repository.msteams_card_study_status_update(study_country)
                 logger.info(
                     "Successfully sent Microsoft Teams card for study_id "
