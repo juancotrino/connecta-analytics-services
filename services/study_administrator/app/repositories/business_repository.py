@@ -140,7 +140,11 @@ class BusinessRepository:
             files = self.get_last_file_version_in_sharepoint(
                 id_study_name, file_path, status
             )
-            files = [file for file in files if upload_files["acronym"] in file]
+            files = [
+                file
+                for file in files
+                if upload_files["acronym"] in file and file.startswith(id_study_name)
+            ]
             if not files:
                 composed_file_name = (
                     f"{id_study_name}_{upload_files['acronym']}_V1.{file_type}"

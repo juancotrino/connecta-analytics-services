@@ -123,20 +123,124 @@ class StudyService:
             )
         return consultant_id
 
+    def _compose_current_study_df(
+        self, current_study_data: list[StudyShow]
+    ) -> pd.DataFrame:
+        current_study_dicts = [data.model_dump() for data in current_study_data]
+        for i, current_study_dict in enumerate(current_study_dicts):
+            current_study_dicts[i] = {
+                k: v if not isinstance(v, list) else ",".join(v)
+                for k, v in current_study_dict.items()
+            }
+        return (
+            pd.DataFrame(current_study_dicts)
+            .sort_values(by="country")
+            .reset_index(drop=True)
+            .T.sort_index()
+        )
+
+    def _compose_new_study_df(
+        self, study_id: int, new_study_data: StudyUpdate
+    ) -> pd.DataFrame:
+        return (
+            self._build_update_study_entry(study_id, new_study_data)
+            .sort_values(by="country")
+            .reset_index(drop=True)
+            .T.sort_index()
+        )
+
+    def _is_updated(
+        self,
+        country: str,
+        current_study_df: pd.DataFrame,
+        new_study_df: pd.DataFrame,
+    ) -> bool:
+        current_study_df = current_study_df.T
+        current_study_df = (
+            current_study_df[current_study_df["country"] == country]
+            .reset_index(drop=True)
+            .T.sort_index()
+        )
+        if current_study_df.empty:
+            return False
+        new_study_df = new_study_df.T
+        new_study_df = (
+            new_study_df[new_study_df["country"] == country]
+            .reset_index(drop=True)
+            .T.sort_index()
+        )
+        return not current_study_df.equals(new_study_df)
+
+    def _check_deleted(
+        self, user: "User", current_study_df: pd.DataFrame, new_study_df: pd.DataFrame
+    ) -> bool:
+        current_study_df = current_study_df.T
+        new_study_df = new_study_df.T
+        if len(current_study_df) > len(new_study_df):
+            for country in current_study_df["country"].values:
+                if country in new_study_df["country"].values:
+                    continue
+                country_df = current_study_df[
+                    current_study_df["country"] == country
+                ].reset_index(drop=True)
+                consultant_id = country_df["consultant"][0]
+                consultant_delegates = self.auth_repository.get_user_delegates(
+                    consultant_id
+                )
+                if (
+                    user.user_id != consultant_id
+                    and user.user_id not in consultant_delegates
+                    and country not in new_study_df["country"].values
+                ):
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail=(
+                            f"Cannot update study '{country_df['study_name'][0]}' "
+                            f"for country '{country}'. You are not the "
+                            "study's consultant or a consultant's delegate."
+                        ),
+                    )
+
+    def _get_current_consultant(
+        self, country: str, current_study_df: pd.DataFrame
+    ) -> str:
+        return current_study_df.T[current_study_df.T["country"] == country].reset_index(
+            drop=True
+        )["consultant"][0]
+
     def update_study(self, study_id: int, study: StudyUpdate, user: "User"):
         study_dict = study.model_dump()
         study_dict["study_id"] = study_id
 
+        current_study_data = self.query_studies(50, 0, study_id=study_id)
+        current_study_df = self._compose_current_study_df(current_study_data)
+        new_study_df = self._compose_new_study_df(study_id, study)
+        self._check_deleted(user, current_study_df, new_study_df)
+
         study_country_folders = {}
 
         for country in study.countries:
-            consultant_id = self._get_consultant_id(country.consultant)
+            if country.country in current_study_df.T["country"].values:
+                consultant_id = self._get_current_consultant(
+                    country.country, current_study_df
+                )
+            else:
+                consultant_id = self._get_consultant_id(country.consultant)
+
             consultant_delegates = self.auth_repository.get_user_delegates(
                 consultant_id
             )
+            is_updated = self._is_updated(
+                country.country, current_study_df, new_study_df
+            )
+
+            if not is_updated:
+                continue
+
             if (
                 user.name != country.consultant
                 and user.user_id not in consultant_delegates
+                and is_updated
             ):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
@@ -147,9 +251,6 @@ class StudyService:
                     ),
                 )
             if country.status == "En ejecución":
-                current_study_data = self.query_studies(
-                    50, 0, study_id=study_id, country=country.country
-                )
                 if (
                     current_study_data
                     and current_study_data[0].status != "En ejecución"
