@@ -404,7 +404,7 @@ class StudyService:
         return study_df
 
     def _build_study_create_entry(self, study: StudyCreate) -> pd.DataFrame:
-        current_timestamp = datetime.now(self.timezone)
+        current_timestamp = datetime.now(timezone("UTC"))
 
         countries = [country.model_dump() for country in study.countries]
         countries = self._transform_data(countries)
