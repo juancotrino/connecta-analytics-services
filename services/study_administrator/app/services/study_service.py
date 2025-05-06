@@ -393,8 +393,10 @@ class StudyService:
                             tzinfo=None
                         )
                     elif isinstance(value, datetime):
-                        element[attribute] = value.astimezone(ZoneInfo("UTC")).replace(
-                            tzinfo=None
+                        element[attribute] = (
+                            value.replace(tzinfo=self.timezone)
+                            .astimezone(ZoneInfo("UTC"))
+                            .replace(tzinfo=None)
                         )
                 if isinstance(value, list):
                     joined_value = ",".join(value)

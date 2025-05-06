@@ -35,7 +35,6 @@ def check_health():
     """
     Check the health of the service.
     """
-    logger.info("THIS IS MY NEW VERSION!!!!!!")
     return {"message": "Service is healthy."}
 
 
