@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING
 from pytz import timezone
+from zoneinfo import ZoneInfo
 from datetime import datetime
 import logging
 
@@ -388,11 +389,11 @@ class StudyService:
                     element[attribute] = self._get_consultant_id(value)
                 if attribute in ("last_update_date", "creation_date"):
                     if value is None:
-                        element[attribute] = datetime.now(timezone("UTC")).replace(
+                        element[attribute] = datetime.now(ZoneInfo("UTC")).replace(
                             tzinfo=None
                         )
                     elif isinstance(value, datetime):
-                        element[attribute] = value.astimezone(timezone("UTC")).replace(
+                        element[attribute] = value.astimezone(ZoneInfo("UTC")).replace(
                             tzinfo=None
                         )
                 if isinstance(value, list):
