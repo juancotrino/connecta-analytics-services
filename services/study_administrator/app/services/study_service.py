@@ -1,6 +1,5 @@
 from typing import TYPE_CHECKING
 from pytz import timezone
-from zoneinfo import ZoneInfo
 from datetime import datetime
 import logging
 
