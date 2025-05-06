@@ -64,6 +64,14 @@ class StudyService:
                 delattr(study, column)
         return studies
 
+    def _get_naive_datetime(self, value: datetime) -> datetime:
+        # First make the naive datetime UTC-aware
+        utc_dt = value.replace(tzinfo=timezone("UTC"))
+        # Then convert to target timezone
+        converted = utc_dt.astimezone(self.timezone)
+        # Finally make it naive again
+        return converted.replace(tzinfo=None)
+
     def _convert_datetime_fields_to_timezone(self, study: StudyShow) -> None:
         """
         Convert all datetime fields in an object to the specified timezone.
@@ -73,12 +81,7 @@ class StudyService:
         """
         for attr_name, attr_value in study.model_dump().items():
             if isinstance(attr_value, datetime):
-                # First make the naive datetime UTC-aware
-                utc_dt = attr_value.replace(tzinfo=timezone("UTC"))
-                # Then convert to target timezone
-                converted = utc_dt.astimezone(self.timezone)
-                # Finally make it naive again
-                naive_datetime = converted.replace(tzinfo=None)
+                naive_datetime = self._get_naive_datetime(attr_value)
                 setattr(study, attr_name, naive_datetime)
 
     def query_studies(self, limit: int, offset: int, **kwargs) -> list[StudyShow]:
@@ -383,6 +386,15 @@ class StudyService:
             for attribute, value in element.items():
                 if attribute == "consultant":
                     element[attribute] = self._get_consultant_id(value)
+                if attribute in ("last_update_date", "creation_date"):
+                    if value is None:
+                        element[attribute] = datetime.now(timezone("UTC")).replace(
+                            tzinfo=None
+                        )
+                    elif isinstance(value, datetime):
+                        element[attribute] = value.astimezone(timezone("UTC")).replace(
+                            tzinfo=None
+                        )
                 if isinstance(value, list):
                     joined_value = ",".join(value)
                     element[attribute] = joined_value if joined_value else None
@@ -404,7 +416,7 @@ class StudyService:
         return study_df
 
     def _build_study_create_entry(self, study: StudyCreate) -> pd.DataFrame:
-        current_timestamp = datetime.now(timezone("UTC"))
+        current_timestamp = datetime.now(timezone("UTC")).replace(tzinfo=None)
 
         countries = [country.model_dump() for country in study.countries]
         countries = self._transform_data(countries)
