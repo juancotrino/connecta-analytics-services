@@ -1,5 +1,4 @@
 from typing import TYPE_CHECKING
-from pytz import timezone
 from zoneinfo import ZoneInfo
 from datetime import datetime
 import logging
@@ -31,7 +30,7 @@ class StudyService:
         self.study_repository = study_repository
         self.business_repository = BusinessRepository()
         self.auth_repository = AuthRepository()
-        self.timezone = timezone("America/Bogota")
+        self.timezone = ZoneInfo("America/Bogota")
         self.countries_iso_2_code = self.business_repository.get_countries_iso_2_code()
         self.study_root_folder_url = "https://connectasas.sharepoint.com/sites/connecta-ciencia_de_datos/Documentos%20compartidos/estudios_dev"
         self.initial_status = "Propuesta"
@@ -67,7 +66,7 @@ class StudyService:
 
     def _get_naive_datetime(self, value: datetime) -> datetime:
         # First make the naive datetime UTC-aware
-        utc_dt = value.replace(tzinfo=timezone("UTC"))
+        utc_dt = value.replace(tzinfo=ZoneInfo("UTC"))
         # Then convert to target timezone
         converted = utc_dt.astimezone(self.timezone)
         # Finally make it naive again
@@ -419,7 +418,7 @@ class StudyService:
         return study_df
 
     def _build_study_create_entry(self, study: StudyCreate) -> pd.DataFrame:
-        current_timestamp = datetime.now(timezone("UTC")).replace(tzinfo=None)
+        current_timestamp = datetime.now(ZoneInfo("UTC")).replace(tzinfo=None)
 
         countries = [country.model_dump() for country in study.countries]
         countries = self._transform_data(countries)
