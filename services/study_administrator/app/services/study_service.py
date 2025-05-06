@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING
 from pytz import timezone
+from zoneinfo import ZoneInfo
 from datetime import datetime
 import logging
 
@@ -392,10 +393,8 @@ class StudyService:
                             tzinfo=None
                         )
                     elif isinstance(value, datetime):
-                        element[attribute] = (
-                            value.replace(tzinfo=self.timezone)
-                            .astimezone(timezone("UTC"))
-                            .replace(tzinfo=None)
+                        element[attribute] = value.astimezone(timezone("UTC")).replace(
+                            tzinfo=None
                         )
                 if isinstance(value, list):
                     joined_value = ",".join(value)
