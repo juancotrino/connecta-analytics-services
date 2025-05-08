@@ -20,7 +20,7 @@ setup_logging()
 app = Flask(__name__)
 
 ALLOWED_ORIGIN = "https://connecta.questionpro.com"  # Replace with the allowed origin
-MAX_VERIFICATION_ATTEMPTS = 3
+MAX_VERIFICATION_ATTEMPTS = 1
 
 # Configure CORS to allow only specific origin
 CORS(app, resources={r"/*": {"origins": ALLOWED_ORIGIN}})
