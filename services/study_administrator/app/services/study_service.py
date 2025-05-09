@@ -380,7 +380,7 @@ class StudyService:
                 "country": country,
                 "file_name": file_name,
                 "author": user.name,
-                "file_folder": full_relative_path,
+                "file_folder": f"{self.study_root_folder_url}/{study_path_name}/{upload_file_data['path']}",
             }
             try:
                 self.business_repository.msteams_card_file_update(
