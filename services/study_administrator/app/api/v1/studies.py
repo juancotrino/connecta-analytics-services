@@ -139,9 +139,7 @@ def upload(
     user: "User" = Depends(get_user),
 ) -> dict[str, str]:
     try:
-        study_service.upload_file(
-            study_id, country, study_name, file_name, file, user.roles
-        )
+        study_service.upload_file(study_id, country, study_name, file_name, file, user)
     except HTTPException as e:
         message = (
             f"Failed to upload file to study '{study_id}', country '{country}', "

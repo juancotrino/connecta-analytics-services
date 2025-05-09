@@ -205,3 +205,42 @@ class BusinessRepository:
 
         webhook.add_cards(card)
         webhook.send()
+
+    def msteams_card_file_update(self, file_name: str, study_info: dict[str, str]):
+        webhook = TeamsWebhook(
+            os.getenv(f"MS_TEAMS_WEBHOOK_{file_name.upper()}_UPDATE")
+        )
+        if not webhook:
+            raise AttributeError(
+                f"There is no Webhook associated with the file name: '{file_name}'"
+            )
+
+        card = AdaptiveCard(
+            title=f"**{file_name.replace('_', ' ').upper()} UPDATE**",
+            title_style=ContainerStyle.DEFAULT,
+        )
+
+        container = Container(style=ContainerStyle.DEFAULT)
+
+        container.add_text_block(
+            f"Study **{study_info['study_id']} {study_info['study_name']}** has a new **{file_name.replace('_', ' ').title()}** file version:",
+            size=TextSize.DEFAULT,
+            weight=TextWeight.DEFAULT,
+            color="default",
+        )
+
+        factset = FactSet()
+        for k, v in study_info.items():
+            if k not in ("file_folder"):
+                factset.add_facts((f"**{k.replace('_', ' ').capitalize()}**:", v))
+
+        container.add_fact_set(factset)
+
+        card.add_container(container)
+
+        card.add_url_button(
+            f"{file_name.replace('_', ' ').title()} folder", study_info["file_folder"]
+        )
+
+        webhook.add_cards(card)
+        webhook.send()

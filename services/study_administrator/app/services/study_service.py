@@ -321,7 +321,7 @@ class StudyService:
         study_name: str,
         file_name: str,
         file: "UploadFile",
-        user_roles: list[str],
+        user: "User",
     ) -> None:
         existing_study = self._get_existing_study(
             study_id=study_id, country=country, study_name=study_name
@@ -342,7 +342,7 @@ class StudyService:
 
         upload_files = self.business_repository.get_upload_files()
         allowed_upload_files = self.business_repository.get_allowed_upload_files(
-            upload_files, user_roles
+            upload_files, user.roles
         )
         if file_name not in allowed_upload_files:
             raise PermissionError(
@@ -372,6 +372,33 @@ class StudyService:
         self.business_repository.upload_file(
             full_relative_path, file.file, new_file_name
         )
+
+        if upload_files[file_name]["msteams_card"]:
+            ms_teams_study_info = {
+                "study_id": study_id,
+                "study_name": study_name,
+                "country": country,
+                "file_name": file_name,
+                "author": user.name,
+                "file_folder": full_relative_path,
+            }
+            try:
+                self.business_repository.msteams_card_file_update(
+                    file_name, ms_teams_study_info
+                )
+            except AttributeError as e:
+                raise HTTPException(
+                    status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=str(e)
+                )
+            except Exception as e:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=(
+                        f"Error sending MSTeams Card for study id: '{study_id}', "
+                        f"study name: {study_name}, country: {country}, file: {file_name}. "
+                        f"Error: {str(e)}"
+                    ),
+                )
 
     def _build_study_path_name(
         self, study_id: int, country: str, study_name: str
