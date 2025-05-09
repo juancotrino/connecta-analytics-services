@@ -378,7 +378,7 @@ class StudyService:
                 "study_id": study_id,
                 "study_name": study_name,
                 "country": country,
-                "file_name": file_name,
+                "file_name": new_file_name,
                 "author": user.name,
                 "file_folder": f"{self.study_root_folder_url}/{study_path_name}/{upload_file_data['path']}",
             }
