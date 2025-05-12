@@ -220,8 +220,6 @@ class StudyService:
         new_study_df = self._compose_new_study_df(study_id, study)
         self._check_deleted(user, current_study_df, new_study_df)
 
-        study_country_folders = {}
-
         for country in study.countries:
             if country.country in current_study_df.T["country"].values:
                 consultant_id = self._get_current_consultant(
@@ -253,18 +251,26 @@ class StudyService:
                         "consultant or a consultant's delegate."
                     ),
                 )
-            if country.status == "En ejecución":
+
+            current_study_country_data = [
+                study_country
+                for study_country in current_study_data
+                if study_country.country == country.country
+            ]
+
+            if country.status != self.initial_status:
                 if (
-                    current_study_data
-                    and current_study_data[0].status != "En ejecución"
+                    current_study_country_data
+                    and current_study_country_data[0].status == self.initial_status
                 ):
                     country_code = self.countries_iso_2_code[country.country].lower()
                     id_study_name = (
                         f"{study_id}_{country_code}_"
                         f"{study.study_name.replace(' ', '_').lower()}"
                     )
+
                     folder_url = f"{self.study_root_folder_url}/{id_study_name}"
-                    study_country_folders[country.country] = folder_url
+
                     try:
                         self.business_repository.create_folder_structure(
                             id_study_name,
@@ -280,7 +286,7 @@ class StudyService:
                             f"'{country.country}'. Error: {str(e)}"
                         )
 
-                self._send_msteams_card(study_dict, country, study_country_folders)
+                    self._send_msteams_card(study_dict, country, folder_url)
 
         study_df = self._build_update_study_entry(study_id, study)
         self.study_repository.update_study(study_id, study_df)
@@ -289,7 +295,7 @@ class StudyService:
         self.study_repository.delete_study(study_id)
 
     def _send_msteams_card(
-        self, study_dict: dict, country: StudyCountryUpdate, study_country_folders: dict
+        self, study_dict: dict, country: StudyCountryUpdate, folder_url: str
     ):
         try:
             study_general_info = {
@@ -297,9 +303,7 @@ class StudyService:
             }
             if country.status != self.initial_status:
                 study_country = study_general_info | country.model_dump()
-                study_country["study_country_folder"] = study_country_folders[
-                    country.country
-                ]
+                study_country["study_country_folder"] = folder_url
                 for attribute, value in study_country.items():
                     if isinstance(value, datetime):
                         study_country[attribute] = value.strftime("%d/%m/%Y %H:%M:%S")
