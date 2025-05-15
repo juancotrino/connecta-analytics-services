@@ -150,7 +150,7 @@ def upload(
     except Exception as e:
         message = (
             f"Failed to upload file to study '{study_id}', country '{country}', "
-            f"study name '{study_name}'. Error: {str(e)}"
+            f"study name '{study_name}'. Unknown Error: {str(e)}"
         )
         logger.error(message)
         raise HTTPException(
