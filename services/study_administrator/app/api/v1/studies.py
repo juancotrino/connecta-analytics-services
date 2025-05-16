@@ -139,7 +139,9 @@ def upload(
     user: "User" = Depends(get_user),
 ) -> dict[str, str]:
     try:
-        study_service.upload_file(study_id, country, study_name, file_name, file, user)
+        file_folder = study_service.upload_file(
+            study_id, country, study_name, file_name, file, user
+        )
     except HTTPException as e:
         message = (
             f"Failed to upload file to study '{study_id}', country '{country}', "
@@ -156,4 +158,7 @@ def upload(
         raise HTTPException(
             status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=message
         )
-    return {"message": f"File uploaded successfully to Study ID: {study_id}"}
+    return {
+        "message": f"File uploaded successfully to Study ID: {study_id}",
+        "file_folder": file_folder,
+    }

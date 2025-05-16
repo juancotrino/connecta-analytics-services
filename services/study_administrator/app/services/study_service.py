@@ -404,6 +404,10 @@ class StudyService:
                     ),
                 )
 
+        return (
+            f"{self.study_root_folder_url}/{study_path_name}/{upload_file_data['path']}"
+        )
+
     def _build_study_path_name(
         self, study_id: int, country: str, study_name: str
     ) -> str:
