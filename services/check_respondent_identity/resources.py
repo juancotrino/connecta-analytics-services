@@ -20,6 +20,7 @@ MAX_REQUESTS_PER_HOUR = 3
 
 FIRESTORE_PHONE_VERIFICATION_COLLECTION = "phone_verification"
 
+WHATSAPP_TEMPLATE_NAME = "survey_verification_code"
 
 twilio_client = TwilioClient(
     os.getenv("TWILIO_ACCOUNT_SID"), os.getenv("TWILIO_AUTH_TOKEN")
@@ -221,7 +222,7 @@ def send_wp_code(phone_number: str) -> dict:
             "to": phone_number,
             "type": "template",
             "template": {
-                "name": "survey_verification_code",
+                "name": WHATSAPP_TEMPLATE_NAME,
                 "language": {"code": "es_CO"},
                 "components": [
                     {
