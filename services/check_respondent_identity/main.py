@@ -187,6 +187,66 @@ def write_respondent():
         return {"message": message}, 500
 
 
+@app.route("/send_wp_code/<path:country>/<path:phone_number>")
+def send_wp_code(country: str, phone_number: str):
+    """
+    Send an WhatsApp verification code to the given phone number.
+    """
+    if not phone_number:
+        message = "Phone number is required."
+        app.logger.error(message)
+        return {"message": message}, 400
+
+    try:
+        # Sanitize the phone number
+        phone_number = resources.transform_phone_number(country, phone_number)
+        # Use WhatsApp to send the verification code
+        response = resources.send_wp_code(phone_number)
+        message = f"WhatsApp code sent with response '{response}'."
+        app.logger.info(message)
+        return {"message": response}, 200
+
+    except Exception as e:
+        message = f"Failed to send WhatsApp code: {str(e)}"
+        app.logger.error(message)
+        return {"message": message}, 500
+
+
+@app.route("/verify_wp_code/<path:country>/<path:phone_number>/<path:code>")
+def verify_wp_code(country: str, phone_number: str, code: str):
+    if not phone_number or not code:
+        message = "Phone number and code are required."
+        app.logger.error(message)
+        return {"message": message}, 400
+
+    try:
+        # Sanitize the phone number
+        phone_number = resources.transform_phone_number(country, phone_number)
+        # Sanitize the code
+        code = code.replace(" ", "")
+        # Verify the code using BigQuery
+        verification_check = resources.verify_wp_code(phone_number, code)
+        if verification_check.verified:
+            message = (
+                f"WhatsApp code verified with status '{verification_check.status}'."
+            )
+            app.logger.info(message)
+            return {"message": message}, 200
+        else:
+            message = (
+                f"Verification code failed with status '{verification_check.status}'. "
+                "Most likely the code is incorrect and do not match the one "
+                "sent by WhatsApp."
+            )
+            app.logger.warning(message)
+            return {"message": message}, 400
+
+    except Exception as e:
+        message = f"Verification failed: {str(e)}"
+        app.logger.error(message)
+        return {"message": message}, 500
+
+
 if __name__ == "__main__":
     debug = ENV == "local"
     app.run(debug=debug, host="0.0.0.0", port=8080)
