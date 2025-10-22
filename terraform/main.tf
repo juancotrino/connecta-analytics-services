@@ -16,7 +16,10 @@ module "cloud_run" {
         "GCP_PROJECT_ID",
         "TWILIO_ACCOUNT_SID",
         "TWILIO_AUTH_TOKEN",
-        "TWILIO_SERVICE_SID"
+        "TWILIO_SERVICE_SID",
+        "WHATSAPP_BUSINESS_ACCOUNT_ID",
+        "WHATSAPP_PHONE_NUMBER_ID",
+        "WHATSAPP_ACCESS_TOKEN",
       ]
     },
     {
