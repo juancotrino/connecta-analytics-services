@@ -149,7 +149,7 @@ def verify(country: str, phone_number: str, code: str):
 @app.route("/write_respondent", methods=["POST"])
 def write_respondent():
     """
-    Verify the code sent to the phone number.
+    Write respondent data to BigQuery.
     """
     country = request.get_json().get("country").strip()
     phone_number = int(
