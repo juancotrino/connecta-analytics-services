@@ -28,6 +28,7 @@ jobs:
     outputs:
       sanitized_services: ${{ steps.detect.outputs.sanitized_services }}
       folder_path_services: ${{ steps.detect.outputs.folder_path_services }}
+      combined_services: ${{ steps.detect.outputs.combined_services }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -65,32 +66,36 @@ jobs:
             echo "No services changed."
             echo "sanitized_services=[]" >> $GITHUB_OUTPUT
             echo "folder_path_services=[]" >> $GITHUB_OUTPUT
+            echo "combined_services=[]" >> $GITHUB_OUTPUT
           else
             # Replace underscores with dashes in service names
             SANITIZED_SERVICES=$(echo "$CHANGED_SERVICES" | sed 's/_/-/g' | jq -R -s -c 'split("\n")[:-1]')
             FOLDER_PATH_SERVICES=$(echo "$CHANGED_SERVICES" | jq -R -s -c 'split("\n")[:-1]')
+            # Zip sanitized and folder arrays into an array of objects to preserve pairing
+            COMBINED_SERVICES=$(jq -n --argjson a "$SANITIZED_SERVICES" --argjson b "$FOLDER_PATH_SERVICES" '[range(0; ($a|length)) | {sanitized_service: $a[.], folder_path_service: $b[.]}]')
           fi
 
           echo "Changed services (sanitized): $SANITIZED_SERVICES"
           echo "Changed services (folder paths): $FOLDER_PATH_SERVICES"
+          echo "Changed services (combined): $COMBINED_SERVICES"
 
           echo "sanitized_services=${SANITIZED_SERVICES}" >> $GITHUB_OUTPUT
           echo "folder_path_services=${FOLDER_PATH_SERVICES}" >> $GITHUB_OUTPUT
+          echo "combined_services=${COMBINED_SERVICES}" >> $GITHUB_OUTPUT
 
           echo "CHANGED_SERVICES=$CHANGED_SERVICES" >> $GITHUB_ENV
 
   build-container-image:
     name: Build Container Image
     needs: detect-changes
-    if: ${{ needs.detect-changes.outputs.folder_path_services && needs.detect-changes.outputs.folder_path_services != '[]' }}
+    if: ${{ needs.detect-changes.outputs.combined_services && needs.detect-changes.outputs.combined_services != '[]' }}
     permissions:
       contents: "read"
       id-token: "write"
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        sanitized_service: ${{ fromJson(needs.detect-changes.outputs.sanitized_services) }}
-        folder_path_service: ${{ fromJson(needs.detect-changes.outputs.folder_path_services) }}
+        include: ${{ fromJson(needs.detect-changes.outputs.combined_services) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -164,15 +169,14 @@ jobs:
     needs:
       - detect-changes
       - terraform
-    if: ${{ needs.detect-changes.outputs.folder_path_services && needs.detect-changes.outputs.folder_path_services != '[]' }}
+    if: ${{ needs.detect-changes.outputs.combined_services && needs.detect-changes.outputs.combined_services != '[]' }}
     permissions:
       contents: "read"
       id-token: "write"
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        sanitized_service: ${{ fromJson(needs.detect-changes.outputs.sanitized_services) }}
-        folder_path_service: ${{ fromJson(needs.detect-changes.outputs.folder_path_services) }}
+        include: ${{ fromJson(needs.detect-changes.outputs.combined_services) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
