@@ -72,7 +72,7 @@ jobs:
             SANITIZED_SERVICES=$(echo "$CHANGED_SERVICES" | sed 's/_/-/g' | jq -R -s -c 'split("\n")[:-1]')
             FOLDER_PATH_SERVICES=$(echo "$CHANGED_SERVICES" | jq -R -s -c 'split("\n")[:-1]')
             # Zip sanitized and folder arrays into an array of objects to preserve pairing
-            COMBINED_SERVICES=$(jq -n --argjson a "$SANITIZED_SERVICES" --argjson b "$FOLDER_PATH_SERVICES" '[range(0; ($a|length)) | {sanitized_service: $a[.], folder_path_service: $b[.]}]')
+            COMBINED_SERVICES=$(jq -nc --argjson a "$SANITIZED_SERVICES" --argjson b "$FOLDER_PATH_SERVICES" '[range(0; ($a|length)) | {sanitized_service: $a[.], folder_path_service: $b[.]}]')
           fi
 
           echo "Changed services (sanitized): $SANITIZED_SERVICES"
