@@ -190,7 +190,7 @@ def write_respondent():
 @app.route("/send_wp_code/<path:country>/<path:phone_number>")
 def send_wp_code(country: str, phone_number: str):
     """
-    Send an WhatsApp verification code to the given phone number.
+    Send a WhatsApp verification code to the given phone number.
     """
     if not phone_number:
         message = "Phone number is required."
