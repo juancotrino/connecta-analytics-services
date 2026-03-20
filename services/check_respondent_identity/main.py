@@ -47,20 +47,24 @@ def check_respondent_qualified(country: str, phone_number: str, project_type: st
         return {"message": message}, 400
 
     try:
-        phone_number = int(resources.transform_phone_number(country, phone_number))
+        transformed_phone_number = int(
+            resources.transform_phone_number(country, phone_number)
+        )
         project_type = project_type.strip().lower()
         # Check if the respondent is qualified
-        is_qualified = resources.is_respondent_qualified(phone_number, project_type)
+        is_qualified = resources.is_respondent_qualified(
+            transformed_phone_number, project_type
+        )
 
         if is_qualified:
             message = (
                 f"Respondent is qualified. Phone number "
-                f"{phone_number} and project type {project_type}."
+                f"{transformed_phone_number} and project type {project_type}."
             )
         else:
             message = (
                 f"Respondent is not qualified. Phone number "
-                f"{phone_number} and project type {project_type}."
+                f"{transformed_phone_number} and project type {project_type}."
             )
 
         app.logger.info(message)
@@ -118,6 +122,7 @@ def verify(country: str, phone_number: str, code: str):
         code = code.replace(" ", "")
         # Verify the code using Twilio
         verification_attempts = 0
+        _status = "failed"
         while verification_attempts < MAX_VERIFICATION_ATTEMPTS:
             verification_check = resources.verify_code(phone_number, code)
             _status = verification_check.status
@@ -198,10 +203,8 @@ def send_wp_code(country: str, phone_number: str):
         return {"message": message}, 400
 
     try:
-        # Sanitize the phone number
-        phone_number = resources.transform_phone_number(country, phone_number)
         # Use WhatsApp to send the verification code
-        response = resources.send_wp_code(phone_number)
+        response = resources.send_wp_code(country, phone_number)
         message = f"WhatsApp code sent with response '{response}'."
         app.logger.info(message)
         return {"message": response}, 200
@@ -220,12 +223,10 @@ def verify_wp_code(country: str, phone_number: str, code: str):
         return {"message": message}, 400
 
     try:
-        # Sanitize the phone number
-        phone_number = resources.transform_phone_number(country, phone_number)
         # Sanitize the code
         code = code.replace(" ", "")
         # Verify the code using BigQuery
-        verification_check = resources.verify_wp_code(phone_number, code)
+        verification_check = resources.verify_wp_code(country, phone_number, code)
         if verification_check.verified:
             message = (
                 f"WhatsApp code verified with status '{verification_check.status}'."

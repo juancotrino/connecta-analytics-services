@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import os
 import random
+import re
 import requests
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
@@ -21,12 +22,18 @@ MAX_REQUESTS_PER_HOUR = 3
 FIRESTORE_PHONE_VERIFICATION_COLLECTION = "phone_verification"
 
 WHATSAPP_TEMPLATE_NAME = "survey_verification_code"
+MEXICO_COUNTRY_CODE = "52"
+MEXICO_MOBILE_PREFIX = "1"
 
 twilio_client = TwilioClient(
     os.getenv("TWILIO_ACCOUNT_SID"), os.getenv("TWILIO_AUTH_TOKEN")
 )
 
-verify_service = twilio_client.verify.services(os.getenv("TWILIO_SERVICE_SID"))
+twilio_service_sid = os.getenv("TWILIO_SERVICE_SID")
+if not twilio_service_sid:
+    raise ValueError("Missing TWILIO_SERVICE_SID environment variable")
+
+verify_service = twilio_client.verify.services(twilio_service_sid)
 
 bq_client = bigquery.Client()
 db = firestore.Client()
@@ -40,13 +47,57 @@ def get_country_phone_code(country_code: str):
 
 
 def transform_phone_number(country: str, phone_number: str):
-    phone_number = phone_number.replace("+", "").replace(" ", "")
+    phone_number = re.sub(r"\D", "", phone_number)
     country_phone_code = get_country_phone_code(country)
     # Check if the phone number already has the country code
     if country_phone_code in phone_number[: len(country_phone_code)]:
         country_phone_code = ""
 
     return f"{country_phone_code}{phone_number}"
+
+
+def get_wp_phone_variants(country: str, phone_number: str) -> list[str]:
+    digits_only_phone = re.sub(r"\D", "", phone_number)
+    transformed_phone = transform_phone_number(country, phone_number)
+
+    if country.strip().upper() != "MX":
+        return [transformed_phone]
+
+    if re.fullmatch(r"521\d{10}", digits_only_phone):
+        return [digits_only_phone]
+
+    if re.fullmatch(r"52\d{10}", digits_only_phone):
+        return [digits_only_phone]
+
+    variants = []
+
+    if transformed_phone.startswith(f"{MEXICO_COUNTRY_CODE}{MEXICO_MOBILE_PREFIX}"):
+        local_number = transformed_phone[
+            len(MEXICO_COUNTRY_CODE) + len(MEXICO_MOBILE_PREFIX) :
+        ]
+        variants.extend(
+            [
+                f"{MEXICO_COUNTRY_CODE}{MEXICO_MOBILE_PREFIX}{local_number}",
+                f"{MEXICO_COUNTRY_CODE}{local_number}",
+            ]
+        )
+    elif transformed_phone.startswith(MEXICO_COUNTRY_CODE):
+        local_number = transformed_phone[len(MEXICO_COUNTRY_CODE) :]
+        variants.extend(
+            [
+                f"{MEXICO_COUNTRY_CODE}{MEXICO_MOBILE_PREFIX}{local_number}",
+                f"{MEXICO_COUNTRY_CODE}{local_number}",
+            ]
+        )
+    else:
+        variants.append(transformed_phone)
+
+    unique_variants = []
+    for variant in variants:
+        if variant not in unique_variants:
+            unique_variants.append(variant)
+
+    return unique_variants
 
 
 def get_respondent_data(phone_number: int, project_type: str):
@@ -208,38 +259,56 @@ def store_wp_code(phone_number: str, code: int):
         raise e
 
 
-def send_wp_code(phone_number: str) -> dict:
+def send_wp_code(country: str, phone_number: str) -> dict:
+    phone_variants = get_wp_phone_variants(country, phone_number)
     random_code = random.randint(1000, 9999)
-    store_wp_code(phone_number, random_code)
-    response = requests.post(
-        f"https://graph.facebook.com/v23.0/{os.getenv('WHATSAPP_PHONE_NUMBER_ID')}/messages",
-        headers={
-            "Authorization": f"Bearer {os.getenv('WHATSAPP_ACCESS_TOKEN')}",
-            "Content-Type": "application/json",
-        },
-        json={
-            "messaging_product": "whatsapp",
-            "to": phone_number,
-            "type": "template",
-            "template": {
-                "name": WHATSAPP_TEMPLATE_NAME,
-                "language": {"code": "es_CO"},
-                "components": [
-                    {
-                        "type": "body",
-                        "parameters": [{"type": "text", "text": str(random_code)}],
-                    },
-                    {
-                        "type": "button",
-                        "sub_type": "url",
-                        "index": "0",
-                        "parameters": [{"type": "text", "text": str(random_code)}],
-                    },
-                ],
+    last_error = None
+
+    for candidate_number in phone_variants:
+        response = requests.post(
+            f"https://graph.facebook.com/v23.0/{os.getenv('WHATSAPP_PHONE_NUMBER_ID')}/messages",
+            headers={
+                "Authorization": f"Bearer {os.getenv('WHATSAPP_ACCESS_TOKEN')}",
+                "Content-Type": "application/json",
             },
-        },
+            json={
+                "messaging_product": "whatsapp",
+                "to": candidate_number,
+                "type": "template",
+                "template": {
+                    "name": WHATSAPP_TEMPLATE_NAME,
+                    "language": {"code": "es_CO"},
+                    "components": [
+                        {
+                            "type": "body",
+                            "parameters": [{"type": "text", "text": str(random_code)}],
+                        },
+                        {
+                            "type": "button",
+                            "sub_type": "url",
+                            "index": "0",
+                            "parameters": [{"type": "text", "text": str(random_code)}],
+                        },
+                    ],
+                },
+            },
+        )
+
+        response_payload = response.json()
+        if response.ok and "error" not in response_payload:
+            store_wp_code(candidate_number, random_code)
+            return {
+                "response": response_payload,
+                "sent_to": candidate_number,
+                "attempted_numbers": phone_variants,
+            }
+
+        last_error = response_payload
+
+    raise ValueError(
+        "Failed to send WhatsApp code for all phone variants. "
+        f"Attempted numbers: {phone_variants}. Last error: {last_error}"
     )
-    return response.json()
 
 
 @dataclass
@@ -248,22 +317,32 @@ class WPCodeVerification:
     status: str
 
 
-def verify_wp_code(phone_number: str, code: str) -> WPCodeVerification:
-    doc = (
-        db.collection(FIRESTORE_PHONE_VERIFICATION_COLLECTION)
-        .document(phone_number)
-        .get()
-    )
+def verify_wp_code(country: str, phone_number: str, code: str) -> WPCodeVerification:
+    phone_variants = get_wp_phone_variants(country, phone_number)
+    now = datetime.now(timezone.utc)
 
-    info = doc.to_dict()
+    for candidate_number in phone_variants:
+        doc = (
+            db.collection(FIRESTORE_PHONE_VERIFICATION_COLLECTION)
+            .document(candidate_number)
+            .get()
+        )
 
-    if info["expires_at"] < datetime.now(timezone.utc):
+        if not doc.exists:
+            continue
+
+        info = doc.to_dict()
+        if not info:
+            continue
+
+        if info["expires_at"] < now:
+            doc.reference.delete()
+            return WPCodeVerification(verified=False, status="code_expired")
+
+        if str(info["code"]) != str(code):
+            return WPCodeVerification(verified=False, status="invalid_code")
+
         doc.reference.delete()
-        return WPCodeVerification(verified=False, status="code_expired")
+        return WPCodeVerification(verified=True, status="success")
 
-    if str(info["code"]) != str(code):
-        return WPCodeVerification(verified=False, status="invalid_code")
-
-    # Verified — delete record
-    doc.reference.delete()
-    return WPCodeVerification(verified=True, status="success")
+    return WPCodeVerification(verified=False, status="invalid_code")
