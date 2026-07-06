@@ -30,7 +30,7 @@ variable "secrets" {
 
 variable "template_annotations" {
   description = "Minimum and maximum scaling options and other options"
-  type = map(number)
+  type        = map(number)
   default = {
     "autoscaling.knative.dev/minScale" = 0
     "autoscaling.knative.dev/maxScale" = 5
@@ -41,4 +41,10 @@ variable "services_names" {
   description = "List of services names to create"
   type        = list(string)
   default     = ["processing", "coding"] # Default values, can be overridden
+}
+
+variable "study_administrator_sharepoint_certificate_secrets" {
+  description = "Optional Secret Manager secret names injected into study administrator for SharePoint certificate auth"
+  type        = list(string)
+  default     = []
 }

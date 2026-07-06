@@ -6,10 +6,10 @@ module "cloud_run" {
 
   services = [
     {
-      name   = "service-check-respondent-identity"
-      image  = "${var.region}-docker.pkg.dev/${var.project_id}/connecta-services/check-respondent-identity:latest"
-      cpu    = "1000m"
-      memory = "256Mi"
+      name                  = "service-check-respondent-identity"
+      image                 = "${var.region}-docker.pkg.dev/${var.project_id}/connecta-services/check-respondent-identity:latest"
+      cpu                   = "1000m"
+      memory                = "256Mi"
       service_account_email = var.service_account_email
       template_annotations  = var.template_annotations
       secrets = [
@@ -23,10 +23,10 @@ module "cloud_run" {
       ]
     },
     {
-      name   = "service-storage-proxy"
-      image  = "${var.region}-docker.pkg.dev/${var.project_id}/connecta-services/storage-proxy:latest"
-      cpu    = "1000m"
-      memory = "256Mi"
+      name                  = "service-storage-proxy"
+      image                 = "${var.region}-docker.pkg.dev/${var.project_id}/connecta-services/storage-proxy:latest"
+      cpu                   = "1000m"
+      memory                = "256Mi"
       service_account_email = var.service_account_email
       template_annotations  = var.template_annotations
       secrets = [
@@ -34,10 +34,10 @@ module "cloud_run" {
       ]
     },
     {
-      name   = "service-processing"
-      image  = "${var.region}-docker.pkg.dev/${var.project_id}/connecta-services/processing:latest"
-      cpu    = "1000m"
-      memory = "512Mi"
+      name                  = "service-processing"
+      image                 = "${var.region}-docker.pkg.dev/${var.project_id}/connecta-services/processing:latest"
+      cpu                   = "1000m"
+      memory                = "512Mi"
       service_account_email = var.service_account_email
       template_annotations  = var.template_annotations
       secrets = [
@@ -45,13 +45,13 @@ module "cloud_run" {
       ]
     },
     {
-      name   = "service-study-administrator"
-      image  = "${var.region}-docker.pkg.dev/${var.project_id}/connecta-services/study-administrator:latest"
-      cpu    = "1000m"
-      memory = "512Mi"
+      name                  = "service-study-administrator"
+      image                 = "${var.region}-docker.pkg.dev/${var.project_id}/connecta-services/study-administrator:latest"
+      cpu                   = "1000m"
+      memory                = "512Mi"
       service_account_email = var.service_account_email
       template_annotations  = var.template_annotations
-      secrets = [
+      secrets = concat([
         "GCP_PROJECT_ID",
         "SITE_URL",
         "CLIENT_ID",
@@ -61,7 +61,7 @@ module "cloud_run" {
         "MS_TEAMS_WEBHOOK_QUESTIONNAIRE_UPDATE",
         "COOKIE_KEY",
         "ENCODE_ALGORITHM"
-      ]
+      ], var.study_administrator_sharepoint_certificate_secrets)
     }
   ]
 }
@@ -81,10 +81,10 @@ module "cloud_storage" {
   source  = "terraform-google-modules/cloud-storage/google"
   version = "~> 9.1"
 
-  project_id  = var.project_id
-  names       = var.services_names # Use the variable here
-  prefix      = "${var.project_id}-service"
-  location    = var.region
+  project_id = var.project_id
+  names      = var.services_names # Use the variable here
+  prefix     = "${var.project_id}-service"
+  location   = var.region
 
   force_destroy = {
     for name in var.services_names : name => true
@@ -102,12 +102,12 @@ module "cloud_storage" {
 ############################################################################
 
 module "service_account" {
-  source     = "./modules/service_account"
+  source = "./modules/service_account"
 
   project_id = var.project_id
   service_account_groups = [
     {
-      prefix = ""
+      prefix           = ""
       service_accounts = [split("@", var.service_account_email)[0]]
       project_roles = [
         "${var.project_id}=>roles/eventarc.eventReceiver",
@@ -122,9 +122,9 @@ module "service_account" {
       ]
     },
     {
-      prefix = "sa"
+      prefix           = "sa"
       service_accounts = ["service-storage-proxy"]
-      project_roles = ["${var.project_id}=>roles/storage.objectAdmin"]
+      project_roles    = ["${var.project_id}=>roles/storage.objectAdmin"]
     },
   ]
 }

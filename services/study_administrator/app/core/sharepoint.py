@@ -12,12 +12,45 @@ class SharePoint:
         site_url: str = os.getenv("SITE_URL"),
         client_id: str = os.getenv("CLIENT_ID"),
         client_secret: str = os.getenv("CLIENT_SECRET"),
+        tenant_id: str = os.getenv("ENTRA_TENANT_ID") or os.getenv("TENANT_ID"),
+        client_cert_thumbprint: str = os.getenv("CLIENT_CERT_THUMBPRINT"),
+        client_cert_private_key: str = os.getenv("CLIENT_CERT_PRIVATE_KEY"),
+        client_cert_path: str = os.getenv("CLIENT_CERT_PATH"),
+        client_cert_passphrase: str = os.getenv("CLIENT_CERT_PASSPHRASE"),
     ) -> None:
         self.site_url = site_url
         self.client_id = client_id
         self.client_secret = client_secret
-        self.credentials = ClientCredential(self.client_id, self.client_secret)
-        self.ctx = ClientContext(self.site_url).with_credentials(self.credentials)
+        self.tenant_id = tenant_id
+        self.client_cert_thumbprint = client_cert_thumbprint
+        self.client_cert_private_key = client_cert_private_key
+        self.client_cert_path = client_cert_path
+        self.client_cert_passphrase = client_cert_passphrase
+
+        if (
+            self.tenant_id
+            and self.client_cert_thumbprint
+            and (self.client_cert_private_key or self.client_cert_path)
+        ):
+            self.credentials = None
+            self.ctx = ClientContext(self.site_url).with_client_certificate(
+                tenant=self.tenant_id,
+                client_id=self.client_id,
+                thumbprint=self.client_cert_thumbprint,
+                cert_path=self.client_cert_path,
+                private_key=self.client_cert_private_key,
+                passphrase=self.client_cert_passphrase,
+            )
+        elif self.client_secret:
+            self.credentials = ClientCredential(self.client_id, self.client_secret)
+            self.ctx = ClientContext(self.site_url).with_credentials(self.credentials)
+        else:
+            raise ValueError(
+                "SharePoint credentials are not configured. Provide CLIENT_ID and "
+                "CLIENT_SECRET, or configure certificate auth with ENTRA_TENANT_ID "
+                "(or TENANT_ID), CLIENT_CERT_THUMBPRINT, and CLIENT_CERT_PRIVATE_KEY "
+                "or CLIENT_CERT_PATH."
+            )
 
     def download_file(self, file_path: str) -> BytesIO:
         # Prepare a file-like object to receive the downloaded file
