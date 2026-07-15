@@ -31,7 +31,11 @@ class AuthRepository:
         while page:
             for user in page.users:
                 users.append(
-                    User(user_id=user.uid, name=user.display_name, email=user.email)
+                    User(
+                        user_id=user.uid,
+                        name=user.display_name or "",
+                        email=user.email,
+                    )
                 )
             page = page.get_next_page()
         return users
