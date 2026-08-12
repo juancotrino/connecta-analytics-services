@@ -20,6 +20,8 @@ CODE_EXPIRY_MINUTES = 5
 MAX_REQUESTS_PER_HOUR = 3
 
 FIRESTORE_PHONE_VERIFICATION_COLLECTION = "phone_verification"
+FIRESTORE_SETTINGS_COLLECTION = "settings"
+FIRESTORE_BUSINESS_DATA_DOCUMENT = "business_data"
 
 WHATSAPP_TEMPLATE_NAME = "survey_verification_code"
 MEXICO_COUNTRY_CODE = "52"
@@ -98,6 +100,26 @@ def get_wp_phone_variants(country: str, phone_number: str) -> list[str]:
             unique_variants.append(variant)
 
     return unique_variants
+
+
+def is_active_supervisor(country: str, phone_number: str) -> bool:
+    business_data = (
+        db.collection(FIRESTORE_SETTINGS_COLLECTION)
+        .document(FIRESTORE_BUSINESS_DATA_DOCUMENT)
+        .get()
+        .to_dict()
+        or {}
+    )
+    supervisor_numbers = {
+        re.sub(r"\D", "", str(supervisor.get("phone_number", "")))
+        for supervisor in business_data.get("field_supervisors", [])
+        if supervisor.get("active") is True
+    }
+
+    return any(
+        number in supervisor_numbers
+        for number in get_wp_phone_variants(country, phone_number)
+    )
 
 
 def get_respondent_data(phone_number: int, project_type: str):

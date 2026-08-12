@@ -203,6 +203,12 @@ def send_wp_code(country: str, phone_number: str):
         return {"message": message}, 400
 
     try:
+        is_supervisor = request.args.get("supervisor", "false").lower() == "true"
+        if is_supervisor and not resources.is_active_supervisor(country, phone_number):
+            message = "Phone number is not an active supervisor."
+            app.logger.warning(message)
+            return {"message": message}, 403
+
         # Use WhatsApp to send the verification code
         response = resources.send_wp_code(country, phone_number)
         message = f"WhatsApp code sent with response '{response}'."
