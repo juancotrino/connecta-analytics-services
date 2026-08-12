@@ -259,6 +259,12 @@ def store_wp_code(phone_number: str, code: int):
         raise e
 
 
+def delete_wp_codes(phone_variants: list[str]):
+    collection = db.collection(FIRESTORE_PHONE_VERIFICATION_COLLECTION)
+    for phone_number in phone_variants:
+        collection.document(phone_number).delete()
+
+
 def send_wp_code(country: str, phone_number: str) -> dict:
     phone_variants = get_wp_phone_variants(country, phone_number)
     random_code = random.randint(1000, 9999)
@@ -337,12 +343,13 @@ def verify_wp_code(country: str, phone_number: str, code: str) -> WPCodeVerifica
 
         if info["expires_at"] < now:
             doc.reference.delete()
-            return WPCodeVerification(verified=False, status="code_expired")
+            continue
 
         if str(info["code"]) != str(code):
             return WPCodeVerification(verified=False, status="invalid_code")
 
-        doc.reference.delete()
+        # Remove all variants so legacy phone formats cannot leave stale codes.
+        delete_wp_codes(phone_variants)
         return WPCodeVerification(verified=True, status="success")
 
     return WPCodeVerification(verified=False, status="invalid_code")
