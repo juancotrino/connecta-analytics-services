@@ -45,12 +45,15 @@ with open(Path(__file__).parent.joinpath("countries_phone_codes.json"), "r") as 
 
 
 def get_country_phone_code(country_code: str):
-    return countries_phone_codes.get(country_code)
+    return countries_phone_codes.get(country_code.strip().upper())
 
 
 def transform_phone_number(country: str, phone_number: str):
+    country = country.strip().upper()
     phone_number = re.sub(r"\D", "", phone_number)
     country_phone_code = get_country_phone_code(country)
+    if not country_phone_code:
+        raise ValueError(f"Unsupported country code: {country}")
     # Check if the phone number already has the country code
     if country_phone_code in phone_number[: len(country_phone_code)]:
         country_phone_code = ""
@@ -66,40 +69,18 @@ def get_wp_phone_variants(country: str, phone_number: str) -> list[str]:
         return [transformed_phone]
 
     if re.fullmatch(r"521\d{10}", digits_only_phone):
-        return [digits_only_phone]
-
-    if re.fullmatch(r"52\d{10}", digits_only_phone):
-        return [digits_only_phone]
-
-    variants = []
-
-    if transformed_phone.startswith(f"{MEXICO_COUNTRY_CODE}{MEXICO_MOBILE_PREFIX}"):
-        local_number = transformed_phone[
-            len(MEXICO_COUNTRY_CODE) + len(MEXICO_MOBILE_PREFIX) :
-        ]
-        variants.extend(
-            [
-                f"{MEXICO_COUNTRY_CODE}{MEXICO_MOBILE_PREFIX}{local_number}",
-                f"{MEXICO_COUNTRY_CODE}{local_number}",
-            ]
-        )
-    elif transformed_phone.startswith(MEXICO_COUNTRY_CODE):
-        local_number = transformed_phone[len(MEXICO_COUNTRY_CODE) :]
-        variants.extend(
-            [
-                f"{MEXICO_COUNTRY_CODE}{MEXICO_MOBILE_PREFIX}{local_number}",
-                f"{MEXICO_COUNTRY_CODE}{local_number}",
-            ]
-        )
+        local_number = digits_only_phone[3:]
+    elif re.fullmatch(r"52\d{10}", digits_only_phone):
+        local_number = digits_only_phone[2:]
+    elif re.fullmatch(r"\d{10}", digits_only_phone):
+        local_number = digits_only_phone
     else:
-        variants.append(transformed_phone)
+        return [transformed_phone]
 
-    unique_variants = []
-    for variant in variants:
-        if variant not in unique_variants:
-            unique_variants.append(variant)
-
-    return unique_variants
+    return [
+        f"{MEXICO_COUNTRY_CODE}{MEXICO_MOBILE_PREFIX}{local_number}",
+        f"{MEXICO_COUNTRY_CODE}{local_number}",
+    ]
 
 
 def is_active_supervisor(country: str, phone_number: str) -> bool:
@@ -110,15 +91,16 @@ def is_active_supervisor(country: str, phone_number: str) -> bool:
         .to_dict()
         or {}
     )
-    supervisor_numbers = {
-        re.sub(r"\D", "", str(supervisor.get("phone_number", "")))
-        for supervisor in business_data.get("field_supervisors", [])
-        if supervisor.get("active") is True
-    }
+    country = country.strip().upper()
+    incoming_variants = set(get_wp_phone_variants(country, phone_number))
 
     return any(
-        number in supervisor_numbers
-        for number in get_wp_phone_variants(country, phone_number)
+        supervisor.get("active") is True
+        and str(supervisor.get("country", "")).strip().upper() == country
+        and incoming_variants.intersection(
+            get_wp_phone_variants(country, str(supervisor.get("phone_number", "")))
+        )
+        for supervisor in business_data.get("field_supervisors", [])
     )
 
 
