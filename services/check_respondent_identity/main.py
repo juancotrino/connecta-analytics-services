@@ -19,11 +19,14 @@ setup_logging()
 
 app = Flask(__name__)
 
-ALLOWED_ORIGIN = "https://connecta.questionpro.com"  # Replace with the allowed origin
+ALLOWED_ORIGINS = [
+    "http://www.questionpro.com",
+    "https://connecta.questionpro.com",
+]  # Replace with the allowed origin
 MAX_VERIFICATION_ATTEMPTS = 1
 
 # Configure CORS to allow only specific origin
-CORS(app, resources={r"/*": {"origins": ALLOWED_ORIGIN}})
+CORS(app, origins=ALLOWED_ORIGINS)
 
 
 @app.route("/check_health")
