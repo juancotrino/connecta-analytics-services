@@ -20,7 +20,7 @@ setup_logging()
 app = Flask(__name__)
 
 ALLOWED_ORIGINS = [
-    "http://www.questionpro.com",
+    "https://www.questionpro.com",
     "https://connecta.questionpro.com",
 ]  # Replace with the allowed origin
 MAX_VERIFICATION_ATTEMPTS = 1
